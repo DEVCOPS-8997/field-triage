@@ -55,6 +55,18 @@ def fake(monkeypatch):
     return f
 
 
+@pytest.fixture(autouse=True)
+def _mock_location_providers(monkeypatch):
+    # Provider behavior is isolated in test_location_data.py; endpoint compatibility stays offline.
+    monkeypatch.setattr(
+        "app.services.location_profile.get_location_data",
+        lambda settings, lat, lon: {
+            key: {"status": "unavailable", "provider": key, "reason": "mocked in endpoint test", "value": None}
+            for key in ("soil", "terrain")
+        },
+    )
+
+
 @pytest.fixture
 def settings(tmp_path):
     return replace(
@@ -118,6 +130,38 @@ def test_success_schema_and_engine(client, fake):
     assert any("not a forecast" in w for w in d["warnings"])
     assert "not this exact field" in d["location"]["data_resolution_note"]
     assert all(r["data_gaps"] for r in d["rotations"])  # missing sources are reported
+
+
+def test_live_soil_and_terrain_reach_temporary_profile_and_engine(client, monkeypatch):
+    providers = {
+        "soil": {
+            "status": "available", "provider": "ISRIC SoilGrids v2.0", "product": "SoilGrids properties mean, 0-30 cm",
+            "values": {"soil_clay_pct": 26.5, "soil_sand_pct": 38.3, "soil_soc_g_kg": 20.6, "soil_ph": 6.5},
+        },
+        "terrain": {
+            "status": "available", "provider": "Copernicus DEM GLO-30", "product": "Copernicus DEM GLO-30",
+            "value": {"elevation_m": 192.9, "slope_deg": 3.55},
+        },
+    }
+    monkeypatch.setattr("app.services.location_profile.get_location_data", lambda settings, lat, lon: providers)
+    original = __import__("app.services.rotation_engine", fromlist=["evaluate_rotations"]).evaluate_rotations
+    captured = {}
+
+    def inspect_engine(**kwargs):
+        captured["soil"] = dict(kwargs["profile"].soil)
+        captured["terrain"] = dict(kwargs["profile"].terrain)
+        result = original(**kwargs)
+        captured["engine_slopes"] = [evaluation.slope_deg_used for evaluation in result.evaluations]
+        return result
+
+    monkeypatch.setattr("app.api.locations.evaluate_rotations", inspect_engine)
+    result = post(client).json()
+    assert captured["soil"]["soil_clay_pct"] == 26.5
+    assert captured["terrain"]["elevation_m"] == 192.9
+    assert captured["terrain"]["slope_deg"] == 3.55
+    assert captured["engine_slopes"] and all(slope == 3.55 for slope in captured["engine_slopes"])
+    assert result["data_retrieval"]["field_profile"]["data_quality"]["soil"] == "derived"
+    assert result["data_retrieval"]["field_profile"]["data_quality"]["terrain"] == "derived"
 
 
 def test_missing_values_stay_missing(client, settings, fake):

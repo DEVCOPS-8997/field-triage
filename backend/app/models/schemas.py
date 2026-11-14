@@ -198,6 +198,13 @@ class LocationInfo(_ContractBaseModel):
     data_resolution_note: str
 
 
+class LocationDataResponse(_ContractBaseModel):
+    """Point-level geospatial observations, independent of crop-calendar coverage."""
+
+    location: Location
+    providers: dict[str, dict]
+
+
 class LocationCompareResponse(CompareResponse):
     location: LocationInfo
     analysis_type: str

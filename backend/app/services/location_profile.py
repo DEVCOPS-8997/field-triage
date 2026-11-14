@@ -1,7 +1,7 @@
-"""Coordinates -> supported region -> NASA POWER history -> temporary FieldProfile + FieldInfo.
+"""Coordinates -> supported crop region -> live data -> temporary FieldProfile + FieldInfo.
 
-Nothing here is persisted as a field. Only NASA POWER is retrieved dynamically; SMAP, MODIS, soil
-and terrain are NOT retrieved and stay `unavailable`.
+Nothing here is persisted as a field. NASA POWER, SoilGrids and Copernicus DEM are retrieved
+dynamically. SMAP and MODIS remain unavailable in this workflow.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from app.config import Settings
 from app.models.schemas import FieldInfo, FieldProfile, Location
 from app.services.m1_profile import profile_from_daily
 from app.services.power_history import PowerHistory, get_power_history
+from app.services.location_data import get_location_data
 from app.utils.validation import DatasetIntegrityError, RequestValidationError
 
 
@@ -84,6 +85,7 @@ class LocationAnalysisInput:
     profile: FieldProfile
     history: PowerHistory
     region: dict[str, Any]
+    location_data: dict[str, dict[str, Any]]
 
 
 def build_location_inputs(
@@ -126,10 +128,24 @@ def build_location_inputs(
             f"fetched {history.fetched_at} ({history.source})"
         ),
     )
+    # Keep the established crop engine and weights unchanged. Add real soil and terrain values
+    # to the temporary profile; the existing erosion calculation consumes the retrieved slope.
+    location_data = get_location_data(settings, lat, lon)
+    for key in ("soil", "terrain"):
+        profile.data_quality[key] = "derived" if location_data[key].get("status") == "available" else "unavailable"
+        if location_data[key].get("status") == "available":
+            profile.data_sources[key] = f"{location_data[key].get('provider')} — {location_data[key].get('product')}"
+    soil_values = location_data["soil"].get("values")
+    if soil_values:
+        profile.soil.update(soil_values)
+    terrain_values = location_data["terrain"].get("value")
+    if isinstance(terrain_values, dict):
+        profile.terrain.update(terrain_values)
     return LocationAnalysisInput(
         field=field,
         raw_field_meta={"source": "farmer_input_gps", "boundary_source": "gps_point"},
         profile=profile,
         history=history,
         region=region,
+        location_data=location_data,
     )

@@ -2,24 +2,36 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.api import get_data_loader, get_request_settings
 from app.config import Settings
-from app.models.schemas import LocationCompareRequest, LocationCompareResponse, LocationInfo
+from app.models.schemas import LocationCompareRequest, LocationCompareResponse, LocationDataResponse, LocationInfo, Location
 from app.services.data_loader import DataLoader
 from app.services.explain import build_compare_response
 from app.services.location_profile import build_location_inputs
+from app.services.location_data import get_location_data
 from app.services.rate_limit import location_rate_limit
 from app.services.rotation_engine import evaluate_rotations
 
 router = APIRouter(prefix="/locations", tags=["locations"])
 
 RESOLUTION_NOTE = (
-    "Climate comes from NASA POWER gridded data (about 0.5 degree cells, tens of km). It describes the "
-    "surrounding grid cell, not this exact field. SMAP, MODIS, soil and terrain were not retrieved."
+    "NASA POWER climate represents a roughly 0.5-degree grid cell. SoilGrids is a modelled 250 m estimate "
+    "and Copernicus DEM is 30 m. These are grid estimates, not field sensor or laboratory measurements; "
+    "the climate cell is not this exact field. SMAP and MODIS are not retrieved by this analysis."
 )
 ANALYSIS_TYPE = "historical_rotation_suitability"
+
+
+@router.get("/data", response_model=LocationDataResponse, dependencies=[Depends(location_rate_limit)])
+def location_data(
+    lat: float = Query(..., ge=-90.0, le=90.0),
+    lon: float = Query(..., ge=-180.0, le=180.0),
+    settings: Settings = Depends(get_request_settings),
+) -> LocationDataResponse:
+    """Return global SoilGrids/DEM point data without requiring a supported crop region."""
+    return LocationDataResponse(location=Location(lat=lat, lon=lon), providers=get_location_data(settings, lat, lon))
 
 
 @router.post("/compare", response_model=LocationCompareResponse, dependencies=[Depends(location_rate_limit)])
@@ -65,10 +77,13 @@ def compare_location(
         "This is not a forecast for the coming season.",
         "Irrigation and current rotation are farmer-reported and unverified.",
     ]
-    for key, label in (("smap", "SMAP soil moisture"), ("modis", "MODIS vegetation"),
-                       ("soil", "Soil properties"), ("terrain", "Terrain")):
+    for key, label in (("smap", "SMAP soil moisture"), ("modis", "MODIS vegetation")):
         if q.get(key) == "unavailable":
-            warnings.append(f"{label} not available for this location; it is not used in the scores.")
+            warnings.append(f"{label} not retrieved by this analysis; it is not used in the scores.")
+    for key, label in (("soil", "SoilGrids soil properties"), ("terrain", "Copernicus terrain")):
+        if q.get(key) == "unavailable":
+            reason = inp.location_data[key].get("reason", "no valid observations")
+            warnings.append(f"{label} unavailable ({reason}); it is not used in the scores.")
     warnings.append(
         "The soil score reflects crop traits in the crop catalog (residue, nitrogen fixation, pest break), "
         "not measured soil at this location."
@@ -95,5 +110,12 @@ def compare_location(
             "period_start": inp.history.start,
             "period_end": inp.history.end,
             "stale": inp.history.source == "stale_cache",
+            "geospatial": inp.location_data,
+            "field_profile": {
+                "soil": inp.profile.soil,
+                "terrain": inp.profile.terrain,
+                "data_sources": inp.profile.data_sources,
+                "data_quality": inp.profile.data_quality,
+            },
         },
     )

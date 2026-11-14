@@ -69,6 +69,8 @@ class Settings:
     power_history_timeout_seconds: float = 60.0
     power_cache_dir: Path = REPO_ROOT / "data" / "cache" / "power"
     location_rate_limit_per_minute: int = 10
+    location_data_cache_dir: Path = REPO_ROOT / "data" / "cache" / "location"
+    location_provider_timeout_seconds: float = 20.0
 
     @property
     def public_data_mode(self) -> PublicDataMode:
@@ -165,4 +167,6 @@ def get_settings(
         power_history_timeout_seconds=float(_env_num("POWER_HISTORY_TIMEOUT_SECONDS", 60.0)),
         power_cache_dir=cache_dir,
         location_rate_limit_per_minute=int(_env_num("LOCATION_RATE_LIMIT_PER_MINUTE", 10, int)),
+        location_data_cache_dir=(REPO_ROOT / Path(os.getenv("LOCATION_DATA_CACHE_DIR", "data/cache/location"))).resolve(),
+        location_provider_timeout_seconds=float(_env_num("LOCATION_PROVIDER_TIMEOUT_SECONDS", 20.0, float)),
     )
