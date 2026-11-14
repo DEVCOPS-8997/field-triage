@@ -262,3 +262,37 @@ def test_pilot_field_compare_still_works():
     c = TestClient(create_app(get_settings(data_mode="demo")))
     r = c.post("/api/v1/rotations/compare", json={"field_id": "F01"})
     assert r.status_code == 200 and r.json()["data_mode"] == "demo"
+
+
+# ---- region/rotation lookup used by the location page -------------------------------------
+WAH_CANTT = {"lat": 33.74055, "lon": 72.79651}
+
+
+def test_region_lists_only_regional_rotations_for_wah_cantt(client, fake):
+    r = client.get("/api/v1/locations/region", params=WAH_CANTT)
+    body = r.json()
+    assert r.status_code == 200 and body["region_id"] == "pk_punjab"
+    assert body["rotations"] and {x["region_id"] for x in body["rotations"]} == {"pk_punjab"}
+    assert fake.calls == []  # lookup never calls NASA
+
+
+def test_region_rejects_unsupported_location(client, fake):
+    r = client.get("/api/v1/locations/region", params={"lat": 0.0, "lon": 0.0})
+    assert r.status_code == 422 and "outside the supported regions" in r.json()["detail"]
+
+
+def test_region_rotation_is_accepted_by_compare(client, fake):
+    rid = client.get("/api/v1/locations/region", params=WAH_CANTT).json()["rotations"][0]["rotation_id"]
+    r = post(client, location=WAH_CANTT, current_crop=None, current_rotation_id=rid)
+    assert r.status_code == 200 and len(r.json()["rotations"]) >= 3
+
+
+@pytest.mark.parametrize("origin", ["http://127.0.0.1:5174", "http://localhost:5199"])
+def test_cors_allows_any_loopback_dev_port(client, origin):
+    r = client.get("/api/v1/rotations", headers={"Origin": origin})
+    assert r.headers.get("access-control-allow-origin") == origin
+
+
+def test_cors_rejects_foreign_origin(client):
+    r = client.get("/api/v1/rotations", headers={"Origin": "https://evil.example"})
+    assert "access-control-allow-origin" not in r.headers

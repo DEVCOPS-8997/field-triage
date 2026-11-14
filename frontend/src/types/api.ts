@@ -139,6 +139,12 @@ export interface LocationCompareResponse extends CompareResponse {
   }
 }
 
+export interface LocationRegionResponse {
+  region_id: string
+  region_name: string
+  rotations: RotationDef[]
+}
+
 export interface RotationDef {
   rotation_id: string
   label: string

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Info, Loader2, TriangleAlert } from 'lucide-react'
@@ -7,7 +7,7 @@ import RotationCard from '../components/RotationCard'
 import Disclaimer from '../components/Disclaimer'
 import { Badge, Card } from '../lib/ui4/primitives'
 import { ConfidencePill } from '../lib/ui/Pill'
-import type { LocationCompareResponse, RotationDef } from '../types/api'
+import type { LocationCompareResponse } from '../types/api'
 
 const sectionTitle = 'm-0 text-[1.25rem] font-semibold text-[color:var(--color-fg,#ecfdf3)]'
 const muted = 'm-0 text-[0.875rem] text-[color:var(--color-fg-2,#A7C4B5)]'
@@ -37,12 +37,13 @@ export default function LocationAnalysis() {
   const [irrigation, setIrrigation] = useState<Irrigation>('limited')
   const [rotationId, setRotationId] = useState('')
 
-  const rotations = useQuery({ queryKey: ['rotations'], queryFn: api.rotations })
-  const grouped = useMemo(() => {
-    const g = new Map<string, RotationDef[]>()
-    for (const r of rotations.data ?? []) g.set(r.region_id, [...(g.get(r.region_id) ?? []), r])
-    return [...g.entries()]
-  }, [rotations.data])
+  const region = useQuery({
+    queryKey: ['location-region', lat, lon],
+    queryFn: () => api.locationRegion(lat, lon),
+    enabled: validCoords,
+    retry: false,
+  })
+  const regionRotations = region.data?.rotations ?? []
 
   const analyze = useMutation({
     mutationFn: () =>
@@ -97,21 +98,21 @@ export default function LocationAnalysis() {
               value={rotationId}
               onChange={(e) => setRotationId(e.target.value)}
               required
-              disabled={rotations.isLoading}
+              disabled={region.isLoading || regionRotations.length === 0}
             >
-              <option value="">{rotations.isLoading ? 'Loading…' : 'Select your current rotation'}</option>
-              {grouped.map(([region, list]) => (
-                <optgroup key={region} label={region}>
-                  {list.map((r) => (
-                    <option key={r.rotation_id} value={r.rotation_id}>
-                      {r.label}
-                    </option>
-                  ))}
-                </optgroup>
+              <option value="">
+                {region.isLoading ? 'Loading…' : region.isError ? 'Rotations unavailable' : 'Select your current rotation'}
+              </option>
+              {regionRotations.map((r) => (
+                <option key={r.rotation_id} value={r.rotation_id}>
+                  {r.label}
+                </option>
               ))}
             </select>
             <span className="text-[0.75rem] text-[color:var(--color-fg-3,#7d9a8b)]">
-              Pick one from the region where this point is. Other regions are rejected.
+              {region.data
+                ? `Rotations for ${region.data.region_name}.`
+                : 'Rotations are listed for the region that contains this point.'}
             </span>
           </label>
           <label className="flex flex-col gap-1 text-[0.875rem]">
@@ -141,6 +142,27 @@ export default function LocationAnalysis() {
           </div>
         </form>
       </Card>
+
+      {region.error && (
+        <div role="alert" className="flex items-start gap-2 rounded-[var(--radius-control,1rem)] border p-4">
+          <TriangleAlert size={18} aria-hidden className="mt-0.5 shrink-0" />
+          <div className="space-y-2">
+            <p className="m-0 font-semibold">Could not load rotations for this location</p>
+            <p className={muted}>
+              {(region.error as Error).message === 'Failed to fetch'
+                ? 'Cannot reach the API (network or CORS error). Check that the backend is running and allows this origin.'
+                : (region.error as Error).message}
+            </p>
+            <button
+              type="button"
+              onClick={() => region.refetch()}
+              className="inline-flex min-h-[44px] items-center rounded-[var(--radius-control,1rem)] border px-4 font-semibold"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       {analyze.error && (
         <div role="alert" className="flex items-start gap-2 rounded-[var(--radius-control,1rem)] border p-4">
