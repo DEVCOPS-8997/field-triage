@@ -31,7 +31,11 @@ from app.config import Settings
 from app.services.power_live import parse_power_daily_payload
 from app.utils.validation import ProfileUnavailableError
 
-POWER_PARAMETERS = ("PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN")
+# Rain/temperature drive the crop season checks; humidity, 2 m wind and all-sky shortwave radiation
+# feed FAO-56 Penman-Monteith ETo; GWETROOT is MERRA-2 root-zone soil wetness (0-1, model output).
+POWER_PARAMETERS = (
+    "PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN", "RH2M", "WS2M", "ALLSKY_SFC_SW_DWN", "GWETROOT",
+)
 GRID_DEG = 0.5
 POWER_LAG_DAYS = 5  # POWER publishes with a few days' delay (same rule as pipeline/common.py)
 REFRESH_OVERLAP_DAYS = 30
@@ -49,6 +53,7 @@ class PowerHistory:
     start: str
     end: str
     warning: str | None = None
+    elevation_m: float | None = None  # POWER grid-cell mean elevation (from the API response)
 
 
 def grid_cell(lat: float, lon: float) -> tuple[int, int, float, float]:
@@ -90,7 +95,23 @@ def _fetch(settings: Settings, lat_c: float, lon_c: float, start: date, end: dat
         block = payload["properties"]["parameter"]
     except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
         raise ProfileUnavailableError(f"NASA POWER request failed: {exc}") from exc
-    return {v: dict(block.get(v, {})) for v in POWER_PARAMETERS}
+    data: dict[str, Any] = {v: dict(block.get(v, {})) for v in POWER_PARAMETERS}
+    try:
+        data["_elevation_m"] = float(payload["geometry"]["coordinates"][2])
+    except (KeyError, IndexError, TypeError, ValueError):
+        pass
+    return data
+
+
+def cache_is_current(lat: float, lon: float, settings: Settings) -> bool:
+    """True when a usable cache entry exists for the point's cell (no NASA call needed to serve it)."""
+    i, j, _, _ = grid_cell(lat, lon)
+    entry = _read_cache(_cache_path(settings, i, j))
+    return bool(
+        entry
+        and entry.get("start") == date(settings.power_history_start_year, 1, 1).isoformat()
+        and entry.get("parameters") == list(POWER_PARAMETERS)
+    )
 
 
 def _read_cache(path: Path) -> dict[str, Any] | None:
@@ -111,7 +132,8 @@ def _frame(entry: dict[str, Any]) -> pd.DataFrame:
     start = date.fromisoformat(entry["start"])
     end = date.fromisoformat(entry["end"])
     return parse_power_daily_payload(
-        {"properties": {"parameter": entry["data"]}}, start_date=start, end_date=end
+        {"properties": {"parameter": entry["data"]}}, start_date=start, end_date=end,
+        variables=POWER_PARAMETERS,
     )
 
 
@@ -137,8 +159,10 @@ def get_power_history(
 
     with _lock_for(f"{i}_{j}"):
         entry = _read_cache(path)
-        if entry and entry.get("start") != start.isoformat():
-            entry = None  # configured history period changed: rebuild
+        if entry and (
+            entry.get("start") != start.isoformat() or entry.get("parameters") != list(POWER_PARAMETERS)
+        ):
+            entry = None  # configured history period or variable set changed: rebuild
         source = "cache"
         warning = None
 
@@ -149,9 +173,11 @@ def get_power_history(
                 raise ProfileUnavailableError(
                     f"{exc}. No cached NASA POWER data exists for this location yet."
                 ) from exc
+            elevation = data.pop("_elevation_m", None)
             entry = {
                 "start": start.isoformat(), "end": end.isoformat(), "data": data,
                 "fetched_at": now.isoformat(), "center": [lat_c, lon_c],
+                "parameters": list(POWER_PARAMETERS), "elevation_m": elevation,
             }
             _write_cache(path, entry)
             source = "live"
@@ -160,6 +186,7 @@ def get_power_history(
             refresh_from = max(start, cached_end - timedelta(days=REFRESH_OVERLAP_DAYS))
             try:
                 fresh = _fetch(settings, lat_c, lon_c, refresh_from, end)
+                fresh.pop("_elevation_m", None)
                 for var in POWER_PARAMETERS:
                     entry["data"].setdefault(var, {}).update(fresh[var])
                 entry["end"] = end.isoformat()
@@ -179,6 +206,7 @@ def get_power_history(
         return PowerHistory(
             df=_frame(entry), cell=cell, fetched_at=entry["fetched_at"], source=source,
             start=entry["start"], end=entry["end"], warning=warning,
+            elevation_m=entry.get("elevation_m"),
         )
 
 

@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import crops, fields, health, locations, meta, now, rotations
+from app.api import crops, health, locations, meta, rotations
 from app.config import Settings, get_settings
 from app.utils.validation import (
     DatasetIntegrityError,
@@ -28,7 +28,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title="Field Shift Advisor API",
         description=(
             "Deterministic multi-season crop-rotation decision-support engine powered by "
-            "NASA Earth observations and regional agronomic calendars."
+            "live NASA POWER, SoilGrids and Copernicus DEM data for any GPS point in a supported region."
         ),
         version="1.0.0",
     )
@@ -74,12 +74,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     api_prefix = "/api/v1"
     application.include_router(health.router, prefix=api_prefix)
-    application.include_router(fields.router, prefix=api_prefix)
     application.include_router(rotations.router, prefix=api_prefix)
     application.include_router(crops.router, prefix=api_prefix)
     application.include_router(meta.router, prefix=api_prefix)
-    application.include_router(now.router, prefix=api_prefix)
     application.include_router(locations.router, prefix=api_prefix)
+    application.include_router(locations.regions_router, prefix=api_prefix)
 
     return application
 

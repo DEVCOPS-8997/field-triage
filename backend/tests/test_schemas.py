@@ -51,6 +51,7 @@ def test_frozen_schema_exact_field_names() -> None:
         "dry_days_lt_1mm",
         "smap_rootzone_m3m3",
         "ndvi_mean",
+        "eto_mm",
     ]
     assert list(FieldProfile.model_fields.keys()) == [
         "field_id",

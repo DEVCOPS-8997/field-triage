@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from app.models.schemas import FieldProfile
+from app.services.agromet import effective_rain_usda_scs
 from app.utils.validation import ProfileUnavailableError
 
 MIN_MONTH_COVERAGE = 0.8  # fraction of days required to report a monthly statistic
@@ -101,7 +102,7 @@ def profile_from_daily(
     df["date"] = pd.to_datetime(df["date"])
     df = df.drop_duplicates("date").sort_values("date").reset_index(drop=True)
     for c in df.columns:
-        if c not in ("date", "MODIS_composite_date"):
+        if c not in ("date", "MODIS_composite_date", "ETO_METHOD"):
             df[c] = pd.to_numeric(df[c], errors="coerce")
 
     df["year"] = df.date.dt.year
@@ -135,6 +136,8 @@ def profile_from_daily(
                 dry_days_lt_1mm=int(round((rain < 1.0).sum() * scale)),
                 smap_rootzone_m3m3=_f(g.sm_rootzone.mean(), 4),
             )
+            if "ETO" in g.columns and g.ETO.notna().sum() / ndays >= MIN_MONTH_COVERAGE:
+                rec["eto_mm"] = _f(g.ETO.mean() * ndays, 1)
         mm = modis[(modis.year == y) & (modis.month == mo)] if not modis.empty else modis
         rec["ndvi_mean"] = _f(mm.NDVI.mean(), 3) if len(mm) else None
         if full or rec["ndvi_mean"] is not None:
@@ -160,6 +163,22 @@ def profile_from_daily(
         clim["heavy_rain_days_ge_25mm_mean"] = _f((ann.PRECTOTCORR >= 25).groupby(ann.year).sum().mean(), 2)
         # Approximation from daily mean temperature (T2M), not hourly GDD.
         clim["gdd_base10_annual_mean"] = _f((ann.T2M - 10).clip(lower=0).groupby(ann.year).sum().mean(), 0)
+        if "ETO" in ann.columns and ann.ETO.notna().mean() >= 0.95:
+            eto_ann = ann.groupby("year").ETO.sum()
+            clim["eto_annual_mm_mean"] = _f(eto_ann.mean(), 0)
+            clim["aridity_index_p_over_eto"] = _f((rain_ann / eto_ann).mean(), 2)
+            # Climatic water deficit: sum over months of max(0, ETo - effective rain).
+            mon = ann.groupby(["year", "month"]).agg(p=("PRECTOTCORR", "sum"), e=("ETO", "sum"))
+            mon["peff"] = mon.p.map(effective_rain_usda_scs)
+            clim["water_deficit_annual_mm_mean"] = _f(
+                (mon.e - mon.peff).clip(lower=0).groupby(level="year").sum().mean(), 0
+            )
+            if "ETO_METHOD" in ann.columns:
+                clim["eto_penman_monteith_share"] = _f((ann.ETO_METHOD == "penman_monteith").mean(), 3)
+    gw = df.GWETROOT.dropna() if "GWETROOT" in df.columns else pd.Series(dtype="float64")
+    if len(gw):
+        clim["gwetroot_mean"] = _f(gw.mean(), 3)
+        clim["gwetroot_p10"] = _f(gw.quantile(0.10), 3)
     sm = df.sm_rootzone.dropna()
     if len(sm):
         clim["smap_rootzone_mean_m3m3"] = _f(sm.mean(), 4)
@@ -174,7 +193,7 @@ def profile_from_daily(
             clim["ndvi_peak_mean"] = _f(peaks.mean(), 3)
             doy = modis[modis.year.isin(full_years)].loc[
                 modis[modis.year.isin(full_years)].groupby("year").NDVI.idxmax(), "comp"
-            ].dt.dayofyear
+            ].dt.day_of_year
             clim["ndvi_peak_doy_mean"] = _f(doy.mean(), 0)
     # Not derivable from M1 data (no ETo, no frost season in this record, no bare-soil classification):
     # bare_days_est_mean, eto_annual_mm_mean, water_deficit_annual_mm_mean, smap_dry_days_frac,
@@ -191,10 +210,12 @@ def profile_from_daily(
         "mean_temp_7d_c": _f(win(7).T2M.mean(), 2),
         "max_temp_7d_c": _f(win(7).T2M_MAX.max(), 2),
         "rootzone_latest_m3m3": _f(sm.iloc[-1], 4) if len(sm) else None,
+        "rootzone_wetness_latest": _f(gw.iloc[-1], 3) if len(gw) else None,
         "ndvi_latest": _f(modis.sort_values("comp").NDVI.iloc[-1], 3) if not modis.empty else None,
         "latest_dates": {
             "power": last.strftime("%Y-%m-%d"),
             "smap": df.loc[df.sm_rootzone.notna(), "date"].max().strftime("%Y-%m-%d") if len(sm) else None,
+            "gwetroot": df.loc[df.GWETROOT.notna(), "date"].max().strftime("%Y-%m-%d") if len(gw) else None,
             **({"modis": modis.comp.max().strftime("%Y-%m-%d")} if not modis.empty else {}),
         },
     }
@@ -211,10 +232,11 @@ def profile_from_daily(
             f"{smap_meta.get('source', 'NASA SMAP L4')} root-zone soil moisture, daily mean of 3-hourly values; "
             f"~9-11 km grid cell, so a regional estimate, not a field-level measurement; "
             f"retrieved {smap_meta.get('retrieved_on', 'unknown')}"
+            if len(sm) else "SMAP L4 not retrieved for this analysis (needs Earth Engine/Earthdata access)"
         ),
         "modis": (
             "MODIS MOD13Q1 NDVI (~250 m, 16-day composite, SummaryQA 0/1 only); not an instantaneous measurement"
-            if have_modis else "MODIS NDVI not available"
+            if have_modis else "MODIS NDVI not retrieved for this analysis (needs Earth Engine access)"
         ),
         "soil": "Not available: SoilGrids layer not delivered by M1 pipeline",
         "terrain": "Not available: terrain (SRTM) layer not delivered by M1 pipeline",
@@ -226,6 +248,19 @@ def profile_from_daily(
         "soil": "unavailable",
         "terrain": "unavailable",
     }
+    if "ETO" in df.columns and df.ETO.notna().any():
+        pm_share = (df.ETO_METHOD == "penman_monteith").mean() if "ETO_METHOD" in df.columns else 0.0
+        sources["eto"] = (
+            "Derived from NASA POWER: FAO-56 Penman-Monteith reference ET (T2M_MAX/MIN, RH2M, WS2M, "
+            f"ALLSKY_SFC_SW_DWN) on {pm_share:.0%} of days; Hargreaves (temperature only) where radiation/humidity are missing"
+        )
+        quality["eto"] = "derived"
+    if len(gw):
+        sources["gwetroot"] = (
+            "NASA POWER GWETROOT root-zone soil wetness (0-1), MERRA-2 land model output at ~0.5 degree; "
+            "a modelled index, not SMAP and not volumetric soil moisture"
+        )
+        quality["gwetroot"] = "derived"
     raw = {
         "field_id": field_id,
         "period_start": f"{first_m['year']:04d}-{first_m['month']:02d}",

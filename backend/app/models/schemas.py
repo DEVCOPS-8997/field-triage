@@ -53,6 +53,7 @@ class MonthRecord(_ContractBaseModel):
     dry_days_lt_1mm: Optional[int] = None
     smap_rootzone_m3m3: Optional[float] = None
     ndvi_mean: Optional[float] = None
+    eto_mm: Optional[float] = None  # FAO-56 reference evapotranspiration, monthly total (live POWER only)
 
 
 class FieldProfile(_ContractBaseModel):
@@ -196,6 +197,7 @@ class LocationInfo(_ContractBaseModel):
     current_rotation_id: str
     nasa_grid_cell: dict
     data_resolution_note: str
+    soil_texture_class: Optional[str] = None  # USDA class derived from SoilGrids sand/clay
 
 
 class LocationDataResponse(_ContractBaseModel):
@@ -205,8 +207,18 @@ class LocationDataResponse(_ContractBaseModel):
     providers: dict[str, dict]
 
 
+class RegionInfo(_ContractBaseModel):
+    region_id: str
+    name: str
+    bbox: dict[str, float]
+    note: str = ""
+
+
 class LocationCompareResponse(CompareResponse):
     location: LocationInfo
     analysis_type: str
     warnings: list[str]
     data_retrieval: dict
+    profile: FieldProfile  # live temporary profile (monthly climate, climatology, soil, terrain, now)
+    now_status: NowStatus
+    now_reasons: list[str]

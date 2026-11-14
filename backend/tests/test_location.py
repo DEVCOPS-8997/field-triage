@@ -160,8 +160,8 @@ def test_live_soil_and_terrain_reach_temporary_profile_and_engine(client, monkey
     assert captured["terrain"]["elevation_m"] == 192.9
     assert captured["terrain"]["slope_deg"] == 3.55
     assert captured["engine_slopes"] and all(slope == 3.55 for slope in captured["engine_slopes"])
-    assert result["data_retrieval"]["field_profile"]["data_quality"]["soil"] == "derived"
-    assert result["data_retrieval"]["field_profile"]["data_quality"]["terrain"] == "derived"
+    assert result["profile"]["data_quality"]["soil"] == "derived"
+    assert result["profile"]["data_quality"]["terrain"] == "derived"
 
 
 def test_missing_values_stay_missing(client, settings, fake):
@@ -257,8 +257,37 @@ def test_rate_limit(settings, fake):
     assert r.status_code == 429 and "Retry-After" in r.headers
 
 
-# ---- existing workflow unaffected --------------------------------------------------------------
-def test_pilot_field_compare_still_works():
-    c = TestClient(create_app(get_settings(data_mode="demo")))
-    r = c.post("/api/v1/rotations/compare", json={"field_id": "F01"})
-    assert r.status_code == 200 and r.json()["data_mode"] == "demo"
+# ---- live profile, current status, cache-aware rate limit ----------------------------------------
+def test_response_carries_live_profile_and_now_status(client, fake):
+    d = post(client).json()
+    assert d["profile"]["field_id"].startswith("LOC_") and d["profile"]["monthly"]
+    assert d["now_status"] in ("FAVORABLE", "WATCH", "STRESSED") and d["now_reasons"]
+    assert d["data_retrieval"]["power_parameters"][:4] == ["PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN"]
+    # synthetic payload has no radiation/humidity, so ETo is Hargreaves-derived but present
+    assert any(m.get("eto_mm") for m in d["profile"]["monthly"])
+    assert d["profile"]["climatology"]["eto_annual_mm_mean"] > 0
+
+
+def test_rate_limit_counts_only_requests_that_call_providers(settings, fake, monkeypatch):
+    reset_rate_limits()
+    monkeypatch.setattr("app.services.location_data.is_cached", lambda s, lat, lon: True)
+    c = TestClient(create_app(replace(settings, location_rate_limit_per_minute=1)))
+    assert post(c).status_code == 200  # first call fetches POWER: counted
+    for _ in range(3):  # slider re-scoring on cached data is not limited
+        assert post(c, priorities={"w_water": 0.7, "w_soil": 0.1, "w_income": 0.1, "w_resilience": 0.1}).status_code == 200
+    assert post(c, location={"lat": 32.2, "lon": 73.1}).status_code == 429  # new cell needs NASA
+
+
+def test_soil_texture_feeds_awc_soil_type_and_water_balance(client, monkeypatch, fake):
+    providers = {
+        "soil": {"status": "available", "provider": "ISRIC SoilGrids v2.0", "product": "SoilGrids",
+                 "values": {"soil_clay_pct": 21.5, "soil_sand_pct": 38.4, "soil_soc_g_kg": 8.2, "soil_ph": 8.6}},
+        "terrain": {"status": "unavailable", "provider": "x", "reason": "mocked", "value": None},
+    }
+    monkeypatch.setattr("app.services.location_profile.get_location_data", lambda s, lat, lon: providers)
+    d = post(client).json()
+    assert d["location"]["soil_texture_class"] == "loam"
+    assert 0.12 < d["profile"]["soil"]["soil_awc_m3m3"] < 0.16
+    ev = {e["variable"]: e for e in d["rotations"][0]["evidence"]}
+    assert "soil_awc_m3m3" in ev and "mean_season_water_demand_mm" in ev
+    assert any("pH is 8.6" in item for item in d["rotations"][0]["needs_local_review"])

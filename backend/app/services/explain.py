@@ -183,7 +183,8 @@ def _build_benefits_and_risks(
     if evaluation.mean_water_deficit_mm > 100.0:
         risks.append(
             f"Mean unmet seasonal water demand of {evaluation.mean_water_deficit_mm:.0f} mm/season "
-            f"after accounting for {evaluation.irrigation_mm:.0f} mm assumed irrigation."
+            f"(crop demand {evaluation.mean_water_demand_mm:.0f} mm vs {evaluation.mean_effective_rain_mm:.0f} mm effective rain, "
+            f"{evaluation.soil_water_mm:.0f} mm stored soil water and {evaluation.irrigation_mm:.0f} mm assumed irrigation)."
         )
     elif evaluation.mean_water_deficit_mm <= 40.0:
         benefits.append(
@@ -213,16 +214,16 @@ def _build_benefits_and_risks(
         )
     if evaluation.heat_failure_count > 0:
         risks.append(
-            f"Exceeded crop heat-day tolerance in {evaluation.heat_failure_count}/{total_s} historical crop seasons."
+            f"Exceeded the crop's heat-day tolerance during flowering/grain fill in {evaluation.heat_failure_count}/{total_s} historical crop seasons."
         )
     if evaluation.frost_failure_count > 0:
         risks.append(
-            f"Experienced frost during frost-sensitive growth windows in "
+            f"Experienced frost between emergence and maturity (frost-sensitive stages) in "
             f"{evaluation.frost_failure_count}/{total_s} historical crop seasons."
         )
     if evaluation.water_failure_count > 0:
         risks.append(
-            f"Fell below the 60% minimum seasonal moisture threshold in "
+            f"Water supply fell below the crop's minimum share of seasonal demand (45-75% depending on drought tolerance) in "
             f"{evaluation.water_failure_count}/{total_s} historical crop seasons."
         )
 
@@ -273,8 +274,8 @@ def _build_data_gaps(
         "power": "NASA POWER historical daily weather observations",
         "smap": "NASA SMAP L4 root-zone soil moisture observations (available 2015 onward)",
         "modis": "NASA MODIS MOD13Q1 250 m NDVI vegetation observations",
-        "soil": "SoilGrids 0–30 cm soil texture, organic carbon, and pH estimates",
-        "terrain": "SRTM 30 m terrain elevation and slope (`slope_deg`)",
+        "soil": "SoilGrids 0–30 cm soil texture, organic carbon, and pH estimates (soil water storage counted as 0 mm)",
+        "terrain": "Copernicus DEM 30 m terrain elevation and slope (`slope_deg`)",
     }
 
     for pillar, desc in pillar_descriptions.items():
@@ -305,7 +306,12 @@ def _build_data_gaps(
             "Field `market_access` rating is missing; income scaling used neutral 3/5 assumption."
         )
     if not field.soil_type:
-        gaps.append("Farmer-reported `soil_type` texture classification is missing.")
+        gaps.append("Soil texture class is unknown (no SoilGrids sand/clay at this point).")
+    if evaluation.water_demand_source != "fao56_kc_eto":
+        gaps.append(
+            "Monthly reference ET was not available for every season month; crop water demand used the catalog "
+            "seasonal requirement (`water_need_mm`) instead of Kc x ETo."
+        )
 
     return gaps
 
@@ -363,6 +369,19 @@ def _build_needs_local_review(
         items.append(
             "SoilGrids properties are 250 m machine-learning predictions, not laboratory soil tests; confirm salinity, pH, and nutrient status via local soil sampling."
         )
+        ph = profile.soil.get("soil_ph")
+        if is_valid_number(ph) and float(ph) >= 8.5:
+            items.append(
+                f"Modelled topsoil pH is {float(ph):.1f} (strongly alkaline): test for sodicity/salinity, which limits legumes and rice-wheat yields."
+            )
+        elif is_valid_number(ph) and float(ph) < 5.5:
+            items.append(
+                f"Modelled topsoil pH is {float(ph):.1f} (acidic): liming may be needed and legume nitrogen fixation is impaired below about pH 5.5."
+            )
+    items.append(
+        "Water demand uses FAO-56 grass reference ET from 0.5-degree NASA POWER meteorology and generic FAO crop "
+        "coefficients; local cultivar, sowing date and irrigation efficiency change the real requirement."
+    )
 
     return items
 
@@ -415,18 +434,73 @@ def _build_evidence(
         )
     )
 
+    eto_ann = profile.climatology.get("eto_annual_mm_mean")
+    if is_valid_number(eto_ann):
+        ai = profile.climatology.get("aridity_index_p_over_eto")
+        evidence.append(
+            EvidenceItem(
+                variable="eto_annual_mm_mean",
+                value=round(float(eto_ann), 0),
+                unit="mm/year",
+                source=_resolve_source_label("eto", profile, nasa_metadata_by_id),
+                interpretation=(
+                    f"Atmospheric water demand (FAO-56 reference ET) of {float(eto_ann):.0f} mm/yr"
+                    + (f"; rain/ETo aridity index {float(ai):.2f}" if is_valid_number(ai) else "")
+                    + " (below 0.5 is semi-arid or drier)."
+                ),
+            )
+        )
+    demand_label = (
+        "sum of FAO-56 Kc x monthly ETo" if evaluation.water_demand_source == "fao56_kc_eto"
+        else "catalog seasonal requirement"
+    )
+    evidence.append(
+        EvidenceItem(
+            variable="mean_season_water_demand_mm",
+            value=evaluation.mean_water_demand_mm,
+            unit="mm/season",
+            source=f"Derived ({power_src} + crops.json Kc and stage lengths)",
+            interpretation=f"Mean crop water demand per season ({demand_label}).",
+        )
+    )
     evidence.append(
         EvidenceItem(
             variable="mean_season_water_deficit_mm",
             value=evaluation.mean_water_deficit_mm,
             unit="mm/season",
-            source=f"Derived ({power_src} + farmer_input irrigation='{field.irrigation}')",
+            source=f"Derived ({power_src} + soil + farmer_input irrigation='{field.irrigation}')",
             interpretation=(
-                f"Mean unmet crop water demand after {evaluation.mean_season_rain_mm:.0f} mm seasonal rain and {evaluation.irrigation_mm:.0f} mm assumed irrigation."
+                f"Unmet demand after {evaluation.mean_effective_rain_mm:.0f} mm effective rain (USDA-SCS, of "
+                f"{evaluation.mean_season_rain_mm:.0f} mm total), {evaluation.soil_water_mm:.0f} mm stored soil water "
+                f"and {evaluation.irrigation_mm:.0f} mm assumed irrigation."
             ),
         )
     )
+    if evaluation.soil_awc_m3m3 is not None:
+        evidence.append(
+            EvidenceItem(
+                variable="soil_awc_m3m3",
+                value=round(evaluation.soil_awc_m3m3, 3),
+                unit="m3/m3",
+                source=f"Derived ({soil_src}, Saxton & Rawls 2006)",
+                interpretation=(
+                    f"Plant-available water capacity of a {field.soil_type or 'unknown-texture'} soil; "
+                    f"about {evaluation.soil_water_mm:.0f} mm is assumed available in the root zone at sowing."
+                ),
+            )
+        )
 
+    gw = profile.climatology.get("gwetroot_mean")
+    if is_valid_number(gw):
+        evidence.append(
+            EvidenceItem(
+                variable="gwetroot_mean",
+                value=round(float(gw), 3),
+                unit="0-1",
+                source=_resolve_source_label("gwetroot", profile, nasa_metadata_by_id),
+                interpretation=f"Long-term mean modelled root-zone wetness ({float(gw):.2f}; 0 = dry, 1 = saturated). Context only, not scored.",
+            )
+        )
     smap_mean = profile.climatology.get("smap_rootzone_mean_m3m3")
     evidence.append(
         EvidenceItem(

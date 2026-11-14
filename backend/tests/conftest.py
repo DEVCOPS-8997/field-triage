@@ -282,6 +282,7 @@ def sandbox_data_dir(tmp_path: Path) -> Path:
         "rotations.json",
         "parameters.json",
         "nasa_metadata.json",
+        "regions.json",
     ):
         shutil.copy2(REAL_DATA_DIR / fname, target / fname)
 

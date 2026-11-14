@@ -34,6 +34,7 @@ export interface MonthRecord {
   dry_days_lt_1mm?: number | null
   smap_rootzone_m3m3?: number | null
   ndvi_mean?: number | null
+  eto_mm?: number | null // FAO-56 reference ET, monthly total (live POWER)
 }
 
 export interface FieldProfile {

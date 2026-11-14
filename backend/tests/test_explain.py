@@ -125,7 +125,7 @@ def test_missing_pillars_and_gwetroot_fallback_flagged_accurately(
     gaps_text = " ".join(existing.data_gaps)
     assert "SMAP L4" in gaps_text
     assert "MODIS MOD13Q1" in gaps_text
-    assert "SRTM" in gaps_text
+    assert "Copernicus DEM" in gaps_text
     assert "bare_days_est_mean" in gaps_text
     assert "missing rainfall/temperature" in gaps_text
 

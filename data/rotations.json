@@ -1,11 +1,11 @@
 [
-{"rotation_id":"rot_pk_cotton_wheat","label":"Cotton - Wheat (current)","strategy_type":"existing","region_id":"pk_punjab","sequence":["cotton","wheat"],"cover_crop":null,"notes":"Common Punjab belt system"},
-{"rotation_id":"rot_pk_rice_wheat","label":"Rice - Wheat (current)","strategy_type":"existing","region_id":"pk_punjab","sequence":["rice","wheat"],"cover_crop":null,"notes":"High water demand"},
+{"rotation_id":"rot_pk_cotton_wheat","label":"Cotton - Wheat","strategy_type":"conventional","region_id":"pk_punjab","sequence":["cotton","wheat"],"cover_crop":null,"notes":"Common Punjab belt system"},
+{"rotation_id":"rot_pk_rice_wheat","label":"Rice - Wheat","strategy_type":"conventional","region_id":"pk_punjab","sequence":["rice","wheat"],"cover_crop":null,"notes":"High water demand"},
 {"rotation_id":"rot_pk_sorghum_chickpea","label":"Sorghum - Chickpea","strategy_type":"water_saving","region_id":"pk_punjab","sequence":["sorghum","chickpea"],"cover_crop":null,"notes":"Drought tolerant cereal then legume"},
 {"rotation_id":"rot_pk_sorghum_berseem","label":"Sorghum - Berseem Clover","strategy_type":"soil_building","region_id":"pk_punjab","sequence":["sorghum","berseem"],"cover_crop":null,"notes":"Near continuous cover, fodder legume"},
 {"rotation_id":"rot_pk_maize_wheat","label":"Spring Maize - Wheat","strategy_type":"income","region_id":"pk_punjab","sequence":["maize","wheat"],"cover_crop":null,"notes":"Market driven"},
-{"rotation_id":"rot_us_corn_soy","label":"Corn - Soybean (current)","strategy_type":"existing","region_id":"us_midwest","sequence":["maize","soybean"],"cover_crop":null,"notes":"Midwest standard"},
-{"rotation_id":"rot_us_wheat_sorghum","label":"Wheat - Sorghum (current)","strategy_type":"existing","region_id":"us_midwest","sequence":["wheat","sorghum"],"cover_crop":null,"notes":"Dryland plains system"},
+{"rotation_id":"rot_us_corn_soy","label":"Corn - Soybean","strategy_type":"conventional","region_id":"us_midwest","sequence":["maize","soybean"],"cover_crop":null,"notes":"Midwest standard"},
+{"rotation_id":"rot_us_wheat_sorghum","label":"Wheat - Sorghum","strategy_type":"conventional","region_id":"us_midwest","sequence":["wheat","sorghum"],"cover_crop":null,"notes":"Dryland plains system"},
 {"rotation_id":"rot_us_sorghum_soy","label":"Sorghum - Soybean","strategy_type":"water_saving","region_id":"us_midwest","sequence":["sorghum","soybean"],"cover_crop":null,"notes":"Lower water need than corn"},
 {"rotation_id":"rot_us_corn_soy_rye","label":"Corn - Soybean + Rye Cover","strategy_type":"soil_building","region_id":"us_midwest","sequence":["maize","soybean"],"cover_crop":"cereal_rye","notes":"Winter cover cuts bare days and erosion"},
 {"rotation_id":"rot_us_corn_soy_wheat","label":"Corn - Soybean - Wheat","strategy_type":"income","region_id":"us_midwest","sequence":["maize","soybean","wheat"],"cover_crop":null,"notes":"Three crop diversification"}

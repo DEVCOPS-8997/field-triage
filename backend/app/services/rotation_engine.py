@@ -11,6 +11,11 @@ Core engineering invariants:
 7. Inter-annual uncertainty bounds (`overall_low`, `overall_high`) preserve exact 10th and 90th
    percentiles across historical years without artificial mean-clamping.
 8. Synthetic `demo` data never counts toward real-world observation `coverage` in `confidence`.
+9. Crop-stage aware season checks (FAO-56 four-stage curve, `crops.json` `kc` + calendar
+   `stage_fractions`): heat days count only in the mid-season (reproductive) stage, frost days only
+   from development through mid-season, and water demand is sum(Kc x ETo) when monthly ETo exists
+   (falls back to the catalog `water_need_mm` otherwise). Supply = USDA-SCS effective rain +
+   plant-available soil water (Saxton-Rawls AWC x rooting depth) + assumed irrigation.
 """
 
 from __future__ import annotations
@@ -28,6 +33,7 @@ from app.models.schemas import (
     Quality,
     Scenario,
 )
+from app.services.agromet import effective_rain_usda_scs, season_month_weights, temperature_eto_factor
 from app.services.data_loader import FIVE_CONFIDENCE_PILLARS, PILLAR_TO_METADATA_ID
 from app.utils.validation import (
     ProfileUnavailableError,
@@ -41,6 +47,7 @@ from app.utils.validation import (
 
 ConfidenceLiteral = Literal["HIGH", "MEDIUM", "LOW"]
 BareFractionSource = Literal["modis_ndvi", "crop_calendar"]
+WaterDemandSource = Literal["fao56_kc_eto", "catalog_water_need"]
 
 
 def _clip(value: float, low: float, high: float) -> float:
@@ -64,14 +71,19 @@ class SeasonEvaluation:
     water_need_mm: float
     water_deficit_mm: float | None
     heat_bucket_key: str
-    season_heat_days: int | None
+    season_heat_days: float | None
     max_heat_days_tolerated: int
-    season_frost_days: int | None
+    season_frost_days: float | None
     frost_sensitive: bool
     heat_ok: bool | None
     frost_ok: bool | None
     water_ok: bool | None
     viable: bool | None
+    effective_rain_mm: float | None = None
+    soil_water_mm: float = 0.0
+    water_demand_source: WaterDemandSource = "catalog_water_need"
+    viable_water_fraction: float = 0.6
+    total_frost_days: int | None = None
 
 
 @dataclass(frozen=True)
@@ -126,6 +138,11 @@ class RotationEvaluation:
     heavy_rain_days_used: float | None
     mean_market_score: float
     market_access_used: int | None
+    mean_water_demand_mm: float = 0.0
+    mean_effective_rain_mm: float = 0.0
+    soil_water_mm: float = 0.0
+    water_demand_source: str = "catalog_water_need"
+    soil_awc_m3m3: float | None = None
 
 
 @dataclass(frozen=True)
@@ -453,6 +470,33 @@ def assess_coverage_and_confidence(
     )
 
 
+def crop_soil_water_mm(
+    crop: dict[str, Any],
+    soil_awc_m3m3: float | None,
+    parameters: dict[str, Any],
+) -> float:
+    """Plant-available soil water at sowing (mm) = AWC x rooting depth x assumed starting fill.
+
+    Unknown soil (no SoilGrids texture) contributes 0 mm: the conservative choice, reported as a gap.
+    """
+    if not is_valid_number(soil_awc_m3m3):
+        return 0.0
+    cfg = parameters.get("soil_water", {}) or {}
+    max_root = float(cfg.get("max_root_depth_cm", 150))
+    start_fraction = float(cfg.get("start_fraction", 0.5))
+    root_cm = min(float(crop.get("root_depth_cm", 100)), max_root)
+    return float(soil_awc_m3m3) * root_cm * 10.0 * start_fraction
+
+
+def crop_viable_water_fraction(crop: dict[str, Any], parameters: dict[str, Any]) -> float:
+    """Minimum share of seasonal crop water demand that must be met; lower for drought-tolerant crops."""
+    by_tol = parameters.get("viable_water_fraction_by_drought_tolerance") or {}
+    key = str(crop.get("drought_tolerance"))
+    if key in by_tol and is_valid_number(by_tol[key]):
+        return float(by_tol[key])
+    return float(parameters["viable_water_fraction"])
+
+
 def _evaluate_single_season(
     sow_year: int,
     max_profile_year: int,
@@ -463,9 +507,14 @@ def _evaluate_single_season(
     viable_water_fraction: float,
     heat_buckets_c: list[int | float],
     scenario: Scenario,
+    soil_water_mm: float = 0.0,
+    frost_damage_days: float = 1.0,
 ) -> SeasonEvaluation:
     sow_month, harvest_month = validate_crop_calendar(crop, region_id)
     window = get_season_year_months(sow_year, sow_month, harvest_month)
+    calendar = (crop.get("calendars") or {}).get(region_id, {}) or {}
+    kc = crop.get("kc") if isinstance(crop.get("kc"), list) and len(crop["kc"]) == 3 else None
+    stage_weights = season_month_weights(len(window), calendar.get("stage_fractions"), kc)
     bucket_key = select_heat_bucket(
         float(crop["heat_threshold_c"]),
         scenario.temp_delta_c,
@@ -518,27 +567,52 @@ def _evaluate_single_season(
             frost_ok=None,
             water_ok=None,
             viable=None,
+            soil_water_mm=soil_water_mm,
+            viable_water_fraction=viable_water_fraction,
         )
 
-    raw_rain_sum = sum(float(r.rain_mm) for r in window_records if r.rain_mm is not None)
-    season_rain_mm = raw_rain_sum * float(scenario.rain_multiplier)
-    water_deficit_mm = max(0.0, water_need_mm - season_rain_mm - irrigation_mm)
-    season_heat_days = sum(int(r.heat_days_ge[bucket_key]) for r in window_records)
+    mult = float(scenario.rain_multiplier)
+    season_rain_mm = sum(float(r.rain_mm) * mult for r in window_records if r.rain_mm is not None)
+    effective_rain_mm = sum(
+        effective_rain_usda_scs(float(r.rain_mm) * mult) for r in window_records if r.rain_mm is not None
+    )
+
+    # Crop water demand: sum over months of Kc x ETo (with the warming scenario raising ETo),
+    # or the catalog seasonal requirement when ETo is not available for every month.
+    if kc is not None and all(is_valid_number(r.eto_mm) for r in window_records):
+        demand_mm = sum(
+            float(w["kc"]) * float(r.eto_mm) * temperature_eto_factor(scenario.temp_delta_c, r.tmean_c)  # type: ignore[arg-type]
+            for w, r in zip(stage_weights, window_records, strict=True)
+        )
+        demand_source: WaterDemandSource = "fao56_kc_eto"
+    else:
+        demand_mm = water_need_mm
+        demand_source = "catalog_water_need"
+
+    supply_mm = effective_rain_mm + soil_water_mm + irrigation_mm
+    water_deficit_mm = max(0.0, demand_mm - supply_mm)
+
+    # Heat stress counts only inside the reproductive (mid-season) stage.
+    season_heat_days = sum(
+        float(w["heat_weight"]) * int(r.heat_days_ge[bucket_key])
+        for w, r in zip(stage_weights, window_records, strict=True)
+    )
 
     if all(is_valid_number(r.frost_days_le_0c) for r in window_records):
-        season_frost_days: int | None = sum(
-            int(r.frost_days_le_0c)
-            for r in window_records
-            if r.frost_days_le_0c is not None
+        total_frost_days: int | None = sum(int(r.frost_days_le_0c) for r in window_records)  # type: ignore[arg-type]
+        season_frost_days: float | None = sum(
+            float(w["frost_weight"]) * int(r.frost_days_le_0c)  # type: ignore[arg-type]
+            for w, r in zip(stage_weights, window_records, strict=True)
         )
     else:
+        total_frost_days = None
         season_frost_days = None
 
     heat_ok = season_heat_days <= max_heat_tol
     frost_ok = not (
-        frost_sensitive and season_frost_days is not None and season_frost_days > 0
+        frost_sensitive and season_frost_days is not None and season_frost_days >= frost_damage_days
     )
-    water_ok = (season_rain_mm + irrigation_mm) >= (viable_water_fraction * water_need_mm)
+    water_ok = supply_mm >= (viable_water_fraction * demand_mm)
     viable = bool(heat_ok and frost_ok and water_ok)
 
     return SeasonEvaluation(
@@ -552,17 +626,22 @@ def _evaluate_single_season(
         is_trailing_cross_year_boundary=False,
         season_rain_mm=season_rain_mm,
         irrigation_mm=irrigation_mm,
-        water_need_mm=water_need_mm,
+        water_need_mm=demand_mm,
         water_deficit_mm=water_deficit_mm,
         heat_bucket_key=bucket_key,
-        season_heat_days=season_heat_days,
+        season_heat_days=round(season_heat_days, 2),
         max_heat_days_tolerated=max_heat_tol,
-        season_frost_days=season_frost_days,
+        season_frost_days=None if season_frost_days is None else round(season_frost_days, 2),
         frost_sensitive=frost_sensitive,
         heat_ok=heat_ok,
         frost_ok=frost_ok,
         water_ok=water_ok,
         viable=viable,
+        effective_rain_mm=effective_rain_mm,
+        soil_water_mm=soil_water_mm,
+        water_demand_source=demand_source,
+        viable_water_fraction=viable_water_fraction,
+        total_frost_days=total_frost_days,
     )
 
 
@@ -619,6 +698,10 @@ def evaluate_rotations(
     bare_days_raw = profile.climatology.get("bare_days_est_mean")
     bare_days_modis = float(bare_days_raw) if is_valid_number(bare_days_raw) else None
 
+    awc_raw = profile.soil.get("soil_awc_m3m3")
+    soil_awc = float(awc_raw) if is_valid_number(awc_raw) else None
+    frost_damage_days = float(parameters.get("frost_damage_days", 1.0))
+
     coverage_report = assess_coverage_and_confidence(profile, parameters)
 
     unranked_evals: list[RotationEvaluation] = []
@@ -647,9 +730,11 @@ def evaluate_rotations(
                     region_id=field.region_id,
                     monthly_index=monthly_index,
                     irrigation_mm=irrigation_mm,
-                    viable_water_fraction=viable_water_fraction,
+                    viable_water_fraction=crop_viable_water_fraction(crop, parameters),
                     heat_buckets_c=heat_buckets_c,
                     scenario=validated_scenario,
+                    soil_water_mm=crop_soil_water_mm(crop, soil_awc, parameters),
+                    frost_damage_days=frost_damage_days,
                 )
                 season_evals.append(se)
                 yr_list.append(se)
@@ -680,6 +765,9 @@ def evaluate_rotations(
             if se.season_rain_mm is not None
         ]
 
+        demands = [float(se.water_need_mm) for se in valid_seasons]
+        eff_rains = [float(se.effective_rain_mm) for se in valid_seasons if se.effective_rain_mm is not None]
+        demand_sources = {se.water_demand_source for se in valid_seasons}
         resilience_score = _clip(100.0 * float(np.mean(viable_flags)), 0.0, 100.0)
         mean_deficit_mm = float(np.mean(water_deficits))
         mean_rain_mm = float(np.mean(season_rains))
@@ -845,6 +933,11 @@ def evaluate_rotations(
                 heavy_rain_days_used=heavy_rain_val,
                 mean_market_score=round(mean_market, 2),
                 market_access_used=access_used,
+                mean_water_demand_mm=round(float(np.mean(demands)), 1),
+                mean_effective_rain_mm=round(float(np.mean(eff_rains)), 1) if eff_rains else 0.0,
+                soil_water_mm=round(float(np.mean([se.soil_water_mm for se in valid_seasons])), 1),
+                water_demand_source=demand_sources.pop() if len(demand_sources) == 1 else "mixed",
+                soil_awc_m3m3=soil_awc,
             )
         )
 

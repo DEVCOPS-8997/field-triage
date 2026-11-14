@@ -37,6 +37,7 @@ def parse_power_daily_payload(
     *,
     start_date: date,
     end_date: date,
+    variables: tuple[str, ...] = ("PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN"),
 ) -> pd.DataFrame:
     """Parse NASA POWER JSON payload into a continuous dated DataFrame with `-999` masked as `NaN`."""
     try:
@@ -49,28 +50,18 @@ def parse_power_daily_payload(
     full_index = pd.date_range(start=start_date, end=end_date, freq="D")
     df = pd.DataFrame(index=full_index)
 
-    for var in ("PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN"):
+    for var in variables:
         raw_series = param_block.get(var, {})
         if not isinstance(raw_series, dict) or not raw_series:
             df[var] = np.nan
             continue
-
-        parsed_dates: list[pd.Timestamp] = []
-        parsed_vals: list[float] = []
-        for k, v in raw_series.items():
-            try:
-                ts = pd.to_datetime(str(k), format="%Y%m%d")
-                fval = float(v)
-            except (ValueError, TypeError):
-                continue
-            # Mask NASA POWER -999 / fill markers to NaN BEFORE any date window slicing
-            if not np.isfinite(fval) or fval <= -990.0:
-                parsed_vals.append(np.nan)
-            else:
-                parsed_vals.append(fval)
-            parsed_dates.append(ts)
-
-        s = pd.Series(parsed_vals, index=pd.DatetimeIndex(parsed_dates), dtype="float64")
+        # Vectorised parse: one to_datetime call for all keys (tens of thousands of days per request).
+        idx = pd.to_datetime(pd.Index(list(raw_series.keys()), dtype="string"), format="%Y%m%d", errors="coerce")
+        vals = pd.to_numeric(pd.Series(list(raw_series.values()), dtype="object"), errors="coerce").to_numpy(dtype="float64")
+        keep = ~idx.isna()
+        s = pd.Series(vals[keep], index=pd.DatetimeIndex(idx[keep]), dtype="float64")
+        # Mask NASA POWER -999 / fill markers to NaN BEFORE any date window slicing
+        s = s.where(np.isfinite(s) & (s > -990.0))
         s = s[~s.index.duplicated(keep="last")]
         df[var] = s.reindex(full_index)
 

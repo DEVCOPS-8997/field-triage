@@ -191,10 +191,26 @@ def test_irrigation_frost_and_viability_exact_formulas(real_catalog: Any) -> Non
     assert cot_wheat_low.frost_failure_count == 0
     assert math.isclose(cot_wheat_low.scores["resilience"], 33.33, abs_tol=0.02)
 
-    # Frost failure check on frost-sensitive maize (sow 2..6 in pk_punjab):
+    # Frost check on frost-sensitive maize (sow 2..6 in pk_punjab), stage-aware:
+    # frost in the sowing month (Feb, initial stage) does not fail the season...
+    prof_sow_frost = copy.deepcopy(prof_dict)
+    for rec in prof_sow_frost["monthly"]:
+        if rec["month"] == 2:
+            rec["frost_days_le_0c"] = 2
+    res_sow_frost = evaluate_rotations(
+        field=f01,
+        profile=FieldProfile.model_validate(prof_sow_frost),
+        crops_by_id=real_catalog.crops_by_id,
+        rotations=real_catalog.rotations,
+        parameters=real_catalog.parameters,
+    )
+    assert next(
+        ev for ev in res_sow_frost.evaluations if ev.rotation_id == "rot_pk_maize_wheat"
+    ).frost_failure_count == 0
+    # ...but frost in April (development / mid-season) does.
     prof_frost = copy.deepcopy(prof_dict)
     for rec in prof_frost["monthly"]:
-        if rec["month"] == 2:
+        if rec["month"] == 4:
             rec["frost_days_le_0c"] = 2
     res_frost = evaluate_rotations(
         field=f01,
@@ -301,7 +317,7 @@ def test_is_existing_uses_current_rotation_id_not_strategy_type(
     """Ensure `is_existing` is `rotation_id == field.current_rotation_id`, never `strategy_type == 'existing'`."""
     f01 = real_catalog.fields_by_id["F01"]  # current_rotation_id = rot_pk_cotton_wheat
 
-    # Default candidate list excludes rot_pk_rice_wheat (another field's existing rotation)
+    # Default candidate list now includes every regional rotation (other conventional systems too)
     default_res = evaluate_rotations(
         field=f01,
         profile=f01_demo_profile,
@@ -311,7 +327,8 @@ def test_is_existing_uses_current_rotation_id_not_strategy_type(
     )
     default_ids = [ev.rotation_id for ev in default_res.evaluations]
     assert "rot_pk_cotton_wheat" in default_ids
-    assert "rot_pk_rice_wheat" not in default_ids
+    assert "rot_pk_rice_wheat" in default_ids
+    assert next(ev for ev in default_res.evaluations if ev.rotation_id == "rot_pk_rice_wheat").is_existing is False
     assert sum(1 for ev in default_res.evaluations if ev.is_existing) == 1
 
     # Even if rot_pk_rice_wheat (`strategy_type == 'existing'`) is explicitly requested for F01,
