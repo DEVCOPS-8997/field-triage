@@ -18,7 +18,7 @@ from app.services import location_data as location_data_service
 from app.services import power_history
 from app.services.data_loader import DataLoader
 from app.services.explain import build_compare_response
-from app.services.location_profile import build_location_inputs, load_regions
+from app.services.location_profile import build_location_inputs, load_regions, resolve_region
 from app.services.power_live import classify_now_conditions
 from app.services.rate_limit import location_rate_limit
 from app.services.rotation_engine import evaluate_rotations
@@ -52,6 +52,22 @@ def location_data(
         location=Location(lat=lat, lon=lon),
         providers=location_data_service.get_location_data(settings, lat, lon),
     )
+
+
+@router.get("/region")
+def location_region(
+    lat: float = Query(..., ge=-90.0, le=90.0),
+    lon: float = Query(..., ge=-180.0, le=180.0),
+    loader: DataLoader = Depends(get_data_loader),
+    settings: Settings = Depends(get_request_settings),
+) -> dict:
+    """Resolve the supported crop region for a point and list its rotations (422 if unsupported)."""
+    region = resolve_region(lat, lon, settings)
+    return {
+        "region_id": region["region_id"],
+        "region_name": region["name"],
+        "rotations": loader.list_rotations(region_id=region["region_id"]),
+    }
 
 
 @router.post("/compare", response_model=LocationCompareResponse)

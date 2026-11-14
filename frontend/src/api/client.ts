@@ -5,6 +5,7 @@ import type {
   FieldProfile,
   LocationCompareRequest,
   LocationCompareResponse,
+  LocationRegionResponse,
   RotationDef,
 } from '../types/api'
 import { rescoreMock } from '../lib/mockScoring'
@@ -49,6 +50,14 @@ export const api = {
         }),
 
   rotations: () => getJson<RotationDef[]>(`${API_URL}/api/v1/rotations`),
+
+  // Region + rotations valid for a GPS point (422 with a readable message if unsupported).
+  locationRegion: (lat: number, lon: number) => {
+    if (USE_MOCK) {
+      return Promise.reject(new Error('Location analysis needs the backend. Set VITE_USE_MOCK=false and start the API.'))
+    }
+    return getJson<LocationRegionResponse>(`${API_URL}/api/v1/locations/region?lat=${lat}&lon=${lon}`)
+  },
 
   // Live GPS analysis always needs the backend (no mock equivalent).
   compareLocation: (req: LocationCompareRequest) => {

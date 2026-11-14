@@ -20,6 +20,9 @@ from app.utils.validation import (
 logger = logging.getLogger("field_shift_advisor")
 
 
+LOOPBACK_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Construct FastAPI application with CORS, `/api/v1` routers, and structured error handlers."""
     resolved_settings = settings or get_settings()
@@ -37,6 +40,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(resolved_settings.cors_origins),
+        # Vite falls back to another port (e.g. 5174) when 5173 is busy; accept any loopback dev origin.
+        allow_origin_regex=LOOPBACK_ORIGIN_REGEX,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
