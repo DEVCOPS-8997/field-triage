@@ -1,0 +1,21 @@
+{
+    "field_id": "F01",
+    "source": "NASA POWER",
+    "api_url": "https://power.larc.nasa.gov/api/temporal/daily/point",
+    "latitude": 33.790823,
+    "longitude": 72.662462,
+    "start_date": "20050101",
+    "end_date": "20261109",
+    "parameters": [
+        "PRECTOTCORR",
+        "T2M",
+        "T2M_MAX",
+        "T2M_MIN",
+        "RH2M",
+        "ALLSKY_SFC_SW_DWN"
+    ],
+    "record_count": 7983,
+    "retrieved_on": "2026-11-14",
+    "data_quality": "observed",
+    "output_file": "raw\\F01\\power_daily.csv"
+}

@@ -1,0 +1,11 @@
+earthengine-api
+earthaccess
+h5py
+xarray
+netCDF4
+requests
+tqdm
+pandas
+numpy
+pyarrow
+pymannkendall
