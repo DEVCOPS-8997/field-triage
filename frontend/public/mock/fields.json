@@ -1,0 +1,322 @@
+[
+  {
+    "field_id": "F01",
+    "name": "Punjab field 1",
+    "region_id": "R1",
+    "location": {
+      "lat": 30.208,
+      "lon": 71.509
+    },
+    "soil_type": "clay loam",
+    "irrigation": "limited",
+    "market_access": 3,
+    "current_rotation_id": "R1_cotton_wheat",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            71.501,
+            30.203
+          ],
+          [
+            71.516,
+            30.203
+          ],
+          [
+            71.516,
+            30.213
+          ],
+          [
+            71.499,
+            30.213
+          ],
+          [
+            71.501,
+            30.203
+          ]
+        ]
+      ]
+    }
+  },
+  {
+    "field_id": "F02",
+    "name": "Punjab field 2",
+    "region_id": "R1",
+    "location": {
+      "lat": 30.247,
+      "lon": 71.509
+    },
+    "soil_type": "sandy loam",
+    "irrigation": "none",
+    "market_access": 5,
+    "current_rotation_id": "R1_cotton_wheat",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            71.501,
+            30.241
+          ],
+          [
+            71.516,
+            30.242
+          ],
+          [
+            71.516,
+            30.253
+          ],
+          [
+            71.499,
+            30.253
+          ],
+          [
+            71.501,
+            30.241
+          ]
+        ]
+      ]
+    }
+  },
+  {
+    "field_id": "F03",
+    "name": "Punjab field 3",
+    "region_id": "R1",
+    "location": {
+      "lat": 30.213,
+      "lon": 71.568
+    },
+    "soil_type": "loam",
+    "irrigation": "reliable",
+    "market_access": 3,
+    "current_rotation_id": "R1_cotton_wheat",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            71.559,
+            30.206
+          ],
+          [
+            71.576,
+            30.207
+          ],
+          [
+            71.576,
+            30.219
+          ],
+          [
+            71.557,
+            30.219
+          ],
+          [
+            71.559,
+            30.206
+          ]
+        ]
+      ]
+    }
+  },
+  {
+    "field_id": "F04",
+    "name": "Punjab field 4",
+    "region_id": "R1",
+    "location": {
+      "lat": 30.249,
+      "lon": 71.567
+    },
+    "soil_type": "silty clay",
+    "irrigation": "limited",
+    "market_access": 5,
+    "current_rotation_id": "R1_cotton_wheat",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            71.56,
+            30.243
+          ],
+          [
+            71.575,
+            30.243
+          ],
+          [
+            71.575,
+            30.256
+          ],
+          [
+            71.558,
+            30.256
+          ],
+          [
+            71.56,
+            30.243
+          ]
+        ]
+      ]
+    }
+  },
+  {
+    "field_id": "F05",
+    "name": "US Midwest field 1",
+    "region_id": "R2",
+    "location": {
+      "lat": 41.906,
+      "lon": -93.592
+    },
+    "soil_type": "silty clay loam",
+    "irrigation": "none",
+    "market_access": 3,
+    "current_rotation_id": "R2_corn_soy",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -93.599,
+            41.901
+          ],
+          [
+            -93.584,
+            41.903
+          ],
+          [
+            -93.584,
+            41.912
+          ],
+          [
+            -93.601,
+            41.912
+          ],
+          [
+            -93.599,
+            41.901
+          ]
+        ]
+      ]
+    }
+  },
+  {
+    "field_id": "F06",
+    "name": "US Midwest field 2",
+    "region_id": "R2",
+    "location": {
+      "lat": 41.949,
+      "lon": -93.591
+    },
+    "soil_type": "loam",
+    "irrigation": "limited",
+    "market_access": 5,
+    "current_rotation_id": "R2_corn_soy",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -93.599,
+            41.942
+          ],
+          [
+            -93.584,
+            41.944
+          ],
+          [
+            -93.584,
+            41.955
+          ],
+          [
+            -93.601,
+            41.955
+          ],
+          [
+            -93.599,
+            41.942
+          ]
+        ]
+      ]
+    }
+  },
+  {
+    "field_id": "F07",
+    "name": "US Midwest field 3",
+    "region_id": "R2",
+    "location": {
+      "lat": 41.911,
+      "lon": -93.539
+    },
+    "soil_type": "clay loam",
+    "irrigation": "none",
+    "market_access": 3,
+    "current_rotation_id": "R2_corn_soy",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -93.546,
+            41.904
+          ],
+          [
+            -93.532,
+            41.904
+          ],
+          [
+            -93.532,
+            41.917
+          ],
+          [
+            -93.548,
+            41.917
+          ],
+          [
+            -93.546,
+            41.904
+          ]
+        ]
+      ]
+    }
+  },
+  {
+    "field_id": "F08",
+    "name": "US Midwest field 4",
+    "region_id": "R2",
+    "location": {
+      "lat": 41.95,
+      "lon": -93.54
+    },
+    "soil_type": "silt loam",
+    "irrigation": "none",
+    "market_access": 5,
+    "current_rotation_id": "R2_corn_soy",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -93.548,
+            41.944
+          ],
+          [
+            -93.532,
+            41.945
+          ],
+          [
+            -93.532,
+            41.956
+          ],
+          [
+            -93.55,
+            41.956
+          ],
+          [
+            -93.548,
+            41.944
+          ]
+        ]
+      ]
+    }
+  }
+]

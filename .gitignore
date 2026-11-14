@@ -1,0 +1,31 @@
+# Python virtual environments and caches
+venv/
+.venv/
+backend/venv/
+backend/.venv/
+pipeline/venv/
+pipeline/.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Environment variables (never commit credentials)
+.env
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Raw NASA pipeline outputs (large parquet/granule caches)
+data/raw/
+
+# Frontend build & dependencies
+frontend/node_modules/
+frontend/dist/
+
+# OS / IDE artifacts
+.DS_Store
+Thumbs.db
