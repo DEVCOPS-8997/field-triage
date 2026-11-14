@@ -63,6 +63,12 @@ class Settings:
     nasa_power_base_url: str
     nasa_power_timeout_seconds: float
     power_cache_ttl_seconds: int
+    # Dynamic location analysis (historical NASA POWER by coordinates)
+    power_history_start_year: int = 2005
+    power_history_ttl_hours: float = 24.0
+    power_history_timeout_seconds: float = 60.0
+    power_cache_dir: Path = REPO_ROOT / "data" / "cache" / "power"
+    location_rate_limit_per_minute: int = 10
 
     @property
     def public_data_mode(self) -> PublicDataMode:
@@ -130,6 +136,22 @@ def get_settings(
     except ValueError as exc:
         raise ValueError(f"Invalid POWER_LIVE_CACHE_TTL_SECONDS '{raw_ttl}'.") from exc
 
+    def _env_num(name: str, default: float, cast=float):
+        raw = os.getenv(name)
+        if raw is None or raw == "":
+            return default
+        try:
+            return cast(raw)
+        except ValueError as exc:
+            raise ValueError(f"Invalid {name} '{raw}'.") from exc
+
+    cache_dir_env = os.getenv("POWER_CACHE_DIR")
+    cache_dir = (
+        Path(cache_dir_env).expanduser() if cache_dir_env else REPO_ROOT / "data" / "cache" / "power"
+    )
+    if not cache_dir.is_absolute():
+        cache_dir = (REPO_ROOT / cache_dir).resolve()
+
     return Settings(
         repo_root=REPO_ROOT,
         data_dir=resolved_data_dir,
@@ -138,4 +160,9 @@ def get_settings(
         nasa_power_base_url=power_url,
         nasa_power_timeout_seconds=timeout_seconds,
         power_cache_ttl_seconds=max(0, cache_ttl),
+        power_history_start_year=int(_env_num("POWER_HISTORY_START_YEAR", 2005, int)),
+        power_history_ttl_hours=float(_env_num("POWER_HISTORY_TTL_HOURS", 24.0)),
+        power_history_timeout_seconds=float(_env_num("POWER_HISTORY_TIMEOUT_SECONDS", 60.0)),
+        power_cache_dir=cache_dir,
+        location_rate_limit_per_minute=int(_env_num("LOCATION_RATE_LIMIT_PER_MINUTE", 10, int)),
     )

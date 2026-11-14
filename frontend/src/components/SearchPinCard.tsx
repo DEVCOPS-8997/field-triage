@@ -31,9 +31,10 @@ interface Props {
   fields: FieldInfo[]
   onSelectField: (id: string) => void
   onClose: () => void
+  onAnalyze: () => void
 }
 
-export default function SearchPinCard({ pin, fields, onSelectField, onClose }: Props) {
+export default function SearchPinCard({ pin, fields, onSelectField, onClose, onAnalyze }: Props) {
   const [copied, setCopied] = useState(false)
 
   const nearest = useMemo(() => {
@@ -131,6 +132,16 @@ export default function SearchPinCard({ pin, fields, onSelectField, onClose }: P
         />
       </div>
       {pin.swapped && <p className="m-0 text-label text-fg-3">Your input was read as longitude, latitude.</p>}
+
+      {/* live NASA analysis for this exact point */}
+      <div className="flex flex-col gap-1 border-t border-glass-border pt-2">
+        <Button variant="primary" icon={MapPin} onClick={onAnalyze} className="w-full">
+          Analyze this location
+        </Button>
+        <p className="m-0 text-label text-fg-3">
+          Uses NASA POWER climate history for this point's grid cell (supported regions only).
+        </p>
+      </div>
 
       {/* nearest pilot field */}
       {nearest && (

@@ -70,17 +70,39 @@ def build_profile(field_id: str, processed_dir: Path) -> FieldProfile:
         df = pd.read_csv(path, parse_dates=["date"])
     except (OSError, ValueError) as exc:
         raise ProfileUnavailableError(f"Failed to read '{path}': {exc}") from exc
-    missing = REQUIRED_COLS - set(df.columns)
-    if missing or df.empty:
-        raise ProfileUnavailableError(f"'{path.name}' is empty or missing columns: {sorted(missing)}")
+    raw_dir = processed_dir.parent / "raw" / field_id
+    power_meta = _read_json(raw_dir / "power_metadata.json")
+    smap_meta = _read_json(raw_dir / "smap_metadata.json")
+    return profile_from_daily(field_id, df, power_meta=power_meta, smap_meta=smap_meta, label=path.name)
 
+
+def profile_from_daily(
+    field_id: str,
+    df: pd.DataFrame,
+    *,
+    power_meta: Optional[dict[str, Any]] = None,
+    smap_meta: Optional[dict[str, Any]] = None,
+    label: str = "daily data",
+    power_source: Optional[str] = None,
+) -> FieldProfile:
+    """Core builder: daily dataframe (date + POWER columns, optional SMAP/MODIS columns) -> FieldProfile.
+
+    Shared by the M1 CSV path and the dynamic location path. Absent columns stay missing.
+    """
+    power_meta = power_meta or {}
+    smap_meta = smap_meta or {}
+    df = df.copy()
+    if "sm_rootzone" not in df.columns:
+        df["sm_rootzone"] = np.nan
+    missing = (REQUIRED_COLS - {"sm_rootzone"}) - set(df.columns)
+    if missing or df.empty:
+        raise ProfileUnavailableError(f"'{label}' is empty or missing columns: {sorted(missing)}")
+
+    df["date"] = pd.to_datetime(df["date"])
     df = df.drop_duplicates("date").sort_values("date").reset_index(drop=True)
     for c in df.columns:
         if c not in ("date", "MODIS_composite_date"):
             df[c] = pd.to_numeric(df[c], errors="coerce")
-    raw_dir = processed_dir.parent / "raw" / field_id
-    power_meta = _read_json(raw_dir / "power_metadata.json")
-    smap_meta = _read_json(raw_dir / "smap_metadata.json")
 
     df["year"] = df.date.dt.year
     df["month"] = df.date.dt.month
@@ -118,7 +140,7 @@ def build_profile(field_id: str, processed_dir: Path) -> FieldProfile:
         if full or rec["ndvi_mean"] is not None:
             monthly.append(rec)
     if not monthly:
-        raise ProfileUnavailableError(f"'{path.name}' has no month with sufficient coverage.")
+        raise ProfileUnavailableError(f"'{label}' has no month with sufficient coverage.")
 
     # Complete calendar years only for annual statistics.
     cover = df.groupby("year").size()
@@ -181,7 +203,7 @@ def build_profile(field_id: str, processed_dir: Path) -> FieldProfile:
     first_m, last_m = monthly[0], monthly[-1]
     have_modis = not modis.empty
     sources = {
-        "power": (
+        "power": power_source or (
             f"NASA POWER daily (gridded ~0.5° reanalysis/satellite-derived, not field sensors); "
             f"retrieved {power_meta.get('retrieved_on', 'unknown')} at lat {power_meta.get('latitude')}, lon {power_meta.get('longitude')}"
         ),

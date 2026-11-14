@@ -162,6 +162,7 @@ Base path: `/api/v1`. Interactive docs: `http://localhost:8000/docs`.
 | GET | `/rotations` | List rotations |
 | GET | `/crops` | List crops |
 | GET | `/meta/sources` | NASA source metadata |
+| POST | `/locations/compare` | Compare rotations for any GPS point in a supported region (live NASA POWER) |
 
 `POST /rotations/compare` body:
 
@@ -175,6 +176,30 @@ Base path: `/api/v1`. Interactive docs: `http://localhost:8000/docs`.
 ```
 
 Only `field_id` is required. The response contains ranked `rotations`, `data_mode`, `data_quality` and a `disclaimer`.
+
+### Live GPS analysis (`POST /api/v1/locations/compare`)
+
+Works for any point inside a supported region, without a saved field. Flow: coordinates, region check (`data/regions.json`), NASA POWER daily history (2005 to latest, cached), temporary `FieldProfile` (`profile_from_daily` in `m1_profile.py`), then the unchanged `evaluate_rotations()`.
+
+```json
+{
+  "location": {"lat": 31.42, "lon": 73.08},
+  "irrigation": "limited",
+  "current_rotation_id": "rot_pk_rice_wheat",
+  "priorities": {"w_water": 0.25, "w_soil": 0.25, "w_income": 0.25, "w_resilience": 0.25},
+  "scenario": {"rain_multiplier": 1.0, "temp_delta_c": 0.0}
+}
+```
+
+- Send `current_rotation_id`, or `current_crop`. A crop is accepted only if it is in exactly one rotation of the region (for example `rice` works, `wheat` is ambiguous and returns 422).
+- The response is the normal compare response plus `location` (region, NASA grid cell, resolution note), `analysis_type` (`historical_rotation_suitability`), `warnings` and `data_retrieval` (live, cache, refreshed or stale_cache).
+- **Only POWER climate is retrieved.** SMAP, MODIS, soil and terrain are `unavailable` and listed as warnings. Not a next-season forecast.
+- Points outside the supported regions return 422. They are never assigned to a nearest field.
+- Errors: 422 invalid input or unsupported region, 429 rate limit, 503 NASA unreachable with no cache.
+- **Regions** (`data/regions.json`) are approximate rectangles. They are an assumption, not official borders.
+- **Cache** (`data/cache/power/`, git-ignored): one file per 0.5 degree grid cell, so nearby points share one NASA request. History is never refetched. After `POWER_HISTORY_TTL_HOURS` (default 24) only the last 30 days onward are refreshed. If a refresh fails, stale cached data is used and flagged. One lock per cell prevents duplicate concurrent fetches.
+- **Rate limit:** `LOCATION_RATE_LIMIT_PER_MINUTE` (default 10 per client, in memory, single process).
+- **Frontend:** on the map, use device GPS, search, or click to drop a pin, then press "Analyze this location" (`/location` page). Needs `VITE_USE_MOCK=false`.
 
 ## 9. Installation and Running
 
@@ -216,10 +241,12 @@ python data/validate_data.py             # dataset validation (from repo root)
 cd frontend && npm run build             # frontend production build
 ```
 
-**Last verified results:** 32 backend tests passed, dataset validation passed (8 fields, 10 crops, 10 rotations, 15 sources), frontend build succeeded. The API and frontend were also checked together against F01 in `processed` mode.
+**Last verified results:** 47 backend tests passed (NASA calls are mocked in `tests/test_location.py`), dataset validation passed (8 fields, 10 crops, 10 rotations, 15 sources), frontend build succeeded. The API and frontend were also checked together against F01 in `processed` mode.
 
 **Known limitations**
-- Only F01 has real NASA data. F02–F08 are demo only.
+- Only F01 has real NASA data among the pilot fields. F02–F08 are demo only.
+- Live GPS analysis uses NASA POWER only. SMAP and MODIS retrieval for arbitrary points is not implemented (needs Google Earth Engine credentials and scripts; `earthengine-api` is not installed here).
+- Region boundaries are approximate rectangles. Only two regions have crop calendars.
 - No soil or terrain observations yet.
 - Scoring weights and thresholds are unvalidated assumptions.
 - F01 rainfall statistics come directly from NASA POWER and look high (about 1,550 mm per year). They have not been cross-checked.

@@ -1,0 +1,135 @@
+"""Coordinates -> supported region -> NASA POWER history -> temporary FieldProfile + FieldInfo.
+
+Nothing here is persisted as a field. Only NASA POWER is retrieved dynamically; SMAP, MODIS, soil
+and terrain are NOT retrieved and stay `unavailable`.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import json
+from typing import Any
+
+from app.config import Settings
+from app.models.schemas import FieldInfo, FieldProfile, Location
+from app.services.m1_profile import profile_from_daily
+from app.services.power_history import PowerHistory, get_power_history
+from app.utils.validation import DatasetIntegrityError, RequestValidationError
+
+
+def load_regions(settings: Settings) -> list[dict[str, Any]]:
+    path = settings.data_dir / "regions.json"
+    try:
+        regions = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(regions, list):
+            raise ValueError("expected a JSON array")
+        return regions
+    except (OSError, ValueError) as exc:
+        raise DatasetIntegrityError(f"regions.json missing or invalid at '{path}': {exc}") from exc
+
+
+def resolve_region(lat: float, lon: float, settings: Settings) -> dict[str, Any]:
+    """Return the supported region containing the point, or raise (never fall back to a nearest one)."""
+    regions = load_regions(settings)
+    for r in regions:
+        b = r["bbox"]
+        if b["lat_min"] <= lat <= b["lat_max"] and b["lon_min"] <= lon <= b["lon_max"]:
+            return r
+    names = ", ".join(r["name"] for r in regions)
+    raise RequestValidationError(
+        f"Location ({lat:.4f}, {lon:.4f}) is outside the supported regions ({names}). "
+        "No crop calendars exist for this area, so no recommendation can be made."
+    )
+
+
+def map_current_rotation(
+    *,
+    region_id: str,
+    rotations: list[dict[str, Any]],
+    current_rotation_id: str | None,
+    current_crop: str | None,
+) -> str:
+    """Resolve the farmer's current rotation. A crop maps only if exactly one regional rotation has it."""
+    regional = [r for r in rotations if r.get("region_id") == region_id]
+    by_id = {r["rotation_id"]: r for r in regional}
+    if current_rotation_id:
+        if current_rotation_id not in by_id:
+            raise RequestValidationError(
+                f"current_rotation_id '{current_rotation_id}' is not a rotation in region '{region_id}'. "
+                f"Valid: {sorted(by_id)}."
+            )
+        return current_rotation_id
+    if not current_crop:
+        raise RequestValidationError(
+            "Provide current_rotation_id or current_crop so the current rotation can be compared."
+        )
+    crop = current_crop.strip().lower()
+    matches = [r["rotation_id"] for r in regional if crop in [c.lower() for c in r.get("sequence", [])]]
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise RequestValidationError(
+            f"Crop '{current_crop}' is not part of any rotation in region '{region_id}'."
+        )
+    raise RequestValidationError(
+        f"Crop '{current_crop}' appears in several rotations {matches}; "
+        "choose one with current_rotation_id."
+    )
+
+
+@dataclass(frozen=True)
+class LocationAnalysisInput:
+    field: FieldInfo
+    raw_field_meta: dict[str, Any]
+    profile: FieldProfile
+    history: PowerHistory
+    region: dict[str, Any]
+
+
+def build_location_inputs(
+    *,
+    lat: float,
+    lon: float,
+    irrigation: str,
+    current_rotation_id: str | None,
+    current_crop: str | None,
+    rotations: list[dict[str, Any]],
+    settings: Settings,
+) -> LocationAnalysisInput:
+    region = resolve_region(lat, lon, settings)
+    rot_id = map_current_rotation(
+        region_id=region["region_id"], rotations=rotations,
+        current_rotation_id=current_rotation_id, current_crop=current_crop,
+    )
+    field_id = f"LOC_{lat:.4f}_{lon:.4f}"
+    field = FieldInfo(
+        field_id=field_id,
+        name=f"GPS location {lat:.4f}, {lon:.4f}",
+        region_id=region["region_id"],
+        location=Location(lat=lat, lon=lon),
+        soil_type=None,
+        irrigation=irrigation,  # type: ignore[arg-type]
+        market_access=None,
+        current_rotation_id=rot_id,
+        geometry={"type": "Point", "coordinates": [lon, lat]},
+    )
+    history = get_power_history(lat, lon, settings)
+    cell = history.cell
+    df = history.df.rename_axis("date").reset_index()
+    profile = profile_from_daily(
+        field_id,
+        df,
+        label=f"NASA POWER history for {field_id}",
+        power_source=(
+            f"NASA POWER daily (gridded ~0.5 degree data, not field sensors), cell centred at "
+            f"{cell['center_lat']}, {cell['center_lon']}; {history.start} to {history.end}; "
+            f"fetched {history.fetched_at} ({history.source})"
+        ),
+    )
+    return LocationAnalysisInput(
+        field=field,
+        raw_field_meta={"source": "farmer_input_gps", "boundary_source": "gps_point"},
+        profile=profile,
+        history=history,
+        region=region,
+    )

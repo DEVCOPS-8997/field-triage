@@ -18,6 +18,7 @@ import type { FieldInfo, Quality } from '../types/api'
 import { useProfile } from '../api/hooks'
 import DataQualityBadge from './DataQualityBadge'
 import MapSearch, { type SearchPick } from './MapSearch'
+import { useNavigate } from 'react-router-dom'
 import SearchPinCard, { type SearchPin } from './SearchPinCard'
 import { reversePlace, zoomForKind } from '../lib/geo/geocode'
 import { Button } from './ui/Button'
@@ -99,6 +100,11 @@ function ZoomWatcher({ onZoom }: { onZoom: (z: number) => void }) {
   return null
 }
 
+function ClickToPin({ onPick }: { onPick: (lat: number, lon: number) => void }) {
+  useMapEvents({ click: (e) => onPick(e.latlng.lat, e.latlng.lng) })
+  return null
+}
+
 /* ------------------------------------------------------ device location */
 type LocNoticeKind = 'success' | 'denied' | 'unavailable' | 'timeout' | 'unsupported' | 'insecure'
 
@@ -154,6 +160,7 @@ interface Props {
 }
 
 export default function FieldMap({ fields, selectedId, onSelect, isLoading = false }: Props) {
+  const navigate = useNavigate()
   const mapStyle = useMapStyle((s) => s.mapStyle)
   const setMapStyle = useMapStyle((s) => s.setMapStyle)
   const [map, setMap] = useState<L.Map | null>(null)
@@ -217,6 +224,7 @@ export default function FieldMap({ fields, selectedId, onSelect, isLoading = fal
         setLocating(false)
         setLocNotice('success')
         flyToPosition(p)
+        placeCoordsPin(p.lat, p.lon, false, false)
       },
       (err) => {
         if (!mounted.current) return
@@ -257,6 +265,23 @@ export default function FieldMap({ fields, selectedId, onSelect, isLoading = fal
     [map],
   )
 
+  // Drop a coordinate pin (typed, clicked on the map, or from device GPS) and look up its address.
+  const placeCoordsPin = (lat: number, lon: number, swapped: boolean, fly: boolean) => {
+    reverseCtrl.current?.abort()
+    setPin({ lat, lon, place: null, source: 'coords', status: 'loading', swapped })
+    if (fly) flyTo(lat, lon, 14)
+    const ctrl = new AbortController()
+    reverseCtrl.current = ctrl
+    reversePlace(lat, lon, ctrl.signal)
+      .then((place) => {
+        if (!ctrl.signal.aborted) setPin((p) => (p && p.lat === lat && p.lon === lon ? { ...p, place, status: 'ready' } : p))
+      })
+      .catch((err: unknown) => {
+        if ((err as Error).name === 'AbortError') return
+        setPin((p) => (p && p.lat === lat && p.lon === lon ? { ...p, status: 'error' } : p))
+      })
+  }
+
   const onSearchPick = (pick: SearchPick) => {
     reverseCtrl.current?.abort()
     switch (pick.kind) {
@@ -276,20 +301,7 @@ export default function FieldMap({ fields, selectedId, onSelect, isLoading = fal
         break
       }
       case 'coords': {
-        const { lat, lon, swapped } = pick
-        setPin({ lat, lon, place: null, source: 'coords', status: 'loading', swapped })
-        flyTo(lat, lon, 14)
-        // Auto-fetch the address and region for the typed coordinates.
-        const ctrl = new AbortController()
-        reverseCtrl.current = ctrl
-        reversePlace(lat, lon, ctrl.signal)
-          .then((place) => {
-            if (!ctrl.signal.aborted) setPin((p) => (p && p.lat === lat && p.lon === lon ? { ...p, place, status: 'ready' } : p))
-          })
-          .catch((err: unknown) => {
-            if ((err as Error).name === 'AbortError') return
-            setPin((p) => (p && p.lat === lat && p.lon === lon ? { ...p, status: 'error' } : p))
-          })
+        placeCoordsPin(pick.lat, pick.lon, pick.swapped, true)
         break
       }
     }
@@ -337,6 +349,7 @@ export default function FieldMap({ fields, selectedId, onSelect, isLoading = fal
         />
         <FitBounds fields={fields} selectedId={selectedId} />
         <ZoomWatcher onZoom={setZoom} />
+        <ClickToPin onPick={(lat, lon) => placeCoordsPin(lat, lon, false, false)} />
 
         {fields.map((f) => {
           const selected = f.field_id === selectedId
@@ -531,7 +544,7 @@ export default function FieldMap({ fields, selectedId, onSelect, isLoading = fal
       {/* ----- bottom overlays ----- */}
       <div className="pointer-events-none absolute inset-x-4 bottom-4 z-[1000] flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="pointer-events-auto flex min-w-0 flex-col gap-2">
-          {pin && <SearchPinCard pin={pin} fields={fields} onSelectField={goToField} onClose={clearPin} />}
+          {pin && <SearchPinCard pin={pin} fields={fields} onSelectField={goToField} onClose={clearPin} onAnalyze={() => navigate(`/location?lat=${pin.lat.toFixed(5)}&lon=${pin.lon.toFixed(5)}`)} />}
           {selectedField && !pin && <FieldInfoCard field={selectedField} />}
           <p className="glass-strong m-0 max-w-[360px] items-start gap-2 data-[pinned=true]:max-sm:hidden flex rounded-[var(--radius-control)] p-2 text-label font-semibold text-fg"
             data-pinned={pin ? 'true' : undefined}

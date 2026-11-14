@@ -105,3 +105,44 @@ export interface CompareResponse {
   data_quality: Record<string, Quality>
   disclaimer: string
 }
+
+// ---- Dynamic GPS-location analysis (POST /api/v1/locations/compare) ----
+export interface LocationCompareRequest {
+  location: Location
+  irrigation: 'none' | 'limited' | 'reliable'
+  current_rotation_id?: string | null
+  current_crop?: string | null
+  priorities?: Priorities
+  scenario?: Scenario
+}
+
+export interface LocationInfo {
+  lat: number
+  lon: number
+  region_id: string
+  region_name: string
+  current_rotation_id: string
+  nasa_grid_cell: Record<string, number>
+  data_resolution_note: string
+}
+
+export interface LocationCompareResponse extends CompareResponse {
+  location: LocationInfo
+  analysis_type: string
+  warnings: string[]
+  data_retrieval: {
+    source: string
+    fetched_at: string
+    period_start: string
+    period_end: string
+    stale: boolean
+  }
+}
+
+export interface RotationDef {
+  rotation_id: string
+  label: string
+  region_id: string
+  strategy_type: string
+  sequence: string[]
+}

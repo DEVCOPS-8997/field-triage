@@ -174,3 +174,32 @@ class NowResponse(_ContractBaseModel):
     data_sources: dict[str, str]
     data_quality: dict[str, Quality]
     disclaimer: str
+
+
+class LocationCompareRequest(_ContractBaseModel):
+    """Dynamic GPS-based comparison. Provide `current_rotation_id` or `current_crop`."""
+
+    location: Location
+    irrigation: Literal["none", "limited", "reliable"]
+    current_rotation_id: Optional[str] = None
+    current_crop: Optional[str] = None
+    priorities: Priorities = Field(default_factory=Priorities)
+    scenario: Scenario = Field(default_factory=Scenario)
+    rotation_ids: Optional[list[str]] = None
+
+
+class LocationInfo(_ContractBaseModel):
+    lat: float
+    lon: float
+    region_id: str
+    region_name: str
+    current_rotation_id: str
+    nasa_grid_cell: dict
+    data_resolution_note: str
+
+
+class LocationCompareResponse(CompareResponse):
+    location: LocationInfo
+    analysis_type: str
+    warnings: list[str]
+    data_retrieval: dict
