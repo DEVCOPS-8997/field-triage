@@ -127,7 +127,7 @@ class RotationEvaluation:
     mean_water_deficit_mm: float
     mean_season_rain_mm: float
     irrigation_mm: float
-    mean_om_effect: float
+    living_root_share: float
     total_n_fix_kg_ha: float
     bare_fraction: float
     bare_fraction_source: BareFractionSource
@@ -136,8 +136,10 @@ class RotationEvaluation:
     cycle_months: int
     slope_deg_used: float | None
     heavy_rain_days_used: float | None
-    mean_market_score: float
-    market_access_used: int | None
+    annual_value_usd_ha: float | None
+    crop_value_usd_ha: dict[str, float]
+    market_missing: tuple[str, ...]
+    income_scored: bool
     mean_water_demand_mm: float = 0.0
     mean_effective_rain_mm: float = 0.0
     soil_water_mm: float = 0.0
@@ -267,22 +269,28 @@ def compute_soil_health_score(
     sequence_crops: list[dict[str, Any]],
     cover_crop: dict[str, Any] | None,
     n_ref_kg_ha: float,
+    living_root_share: float,
+    weights: dict[str, Any] | None = None,
 ) -> tuple[float, float, float]:
-    """Compute `(soil_health_score, mean_om_effect, total_n_fix_kg_ha)` per Section 7 & 8.7."""
+    """Compute `(soil_health_score, living_root_share, total_n_kg_ha)`.
+
+    Follows two of the USDA NRCS soil-health principles that can be computed for a rotation:
+    keep living roots in the soil as long as possible (share of the cycle a crop is growing, from
+    the crop calendars) and feed the soil biologically (net legume nitrogen left for the next
+    crop, from the cited field studies in `crops.json`).
+    """
     soil_crops = list(sequence_crops)
     if cover_crop is not None:
         soil_crops.append(cover_crop)
-
-    om_values = [float(c["om_effect"]) for c in soil_crops]
-    n_fix_values = [float(c["n_fix_kg_ha"]) for c in soil_crops]
-
-    mean_om = float(np.mean(om_values))
-    total_n_fix = float(np.sum(n_fix_values))
-
-    om_term = 0.7 * ((mean_om + 1.0) / 3.0)
-    n_term = 0.3 * _clip(total_n_fix / float(n_ref_kg_ha), 0.0, 1.0)
-    score = 100.0 * _clip(om_term + n_term, 0.0, 1.0)
-    return score, mean_om, total_n_fix
+    total_n = float(np.sum([float(c.get("n_fix_kg_ha") or 0.0) for c in soil_crops]))
+    w = weights or {}
+    w_roots = float(w.get("living_roots", 0.5))
+    w_n = float(w.get("nitrogen", 0.5))
+    denom = (w_roots + w_n) or 1.0
+    roots = _clip(living_root_share, 0.0, 1.0)
+    n_term = _clip(total_n / float(n_ref_kg_ha), 0.0, 1.0)
+    score = 100.0 * _clip((w_roots * roots + w_n * n_term) / denom, 0.0, 1.0)
+    return score, roots, total_n
 
 
 def compute_pest_break_score(
@@ -328,21 +336,33 @@ def compute_erosion_score(
     return 100.0 * (1.0 - raw_erosion_risk)
 
 
-def compute_income_score(
+def compute_crop_value(
     sequence_crops: list[dict[str, Any]],
-    market_access: int | None,
-) -> tuple[float, float, int | None]:
-    """Compute `(income_score, mean_market_score, market_access_used)` over harvested cash crops."""
-    market_scores = [float(c["market_score"]) for c in sequence_crops]
-    mean_market = float(np.mean(market_scores))
+    market_crops: dict[str, Any] | None,
+    viable_share_by_crop: dict[str, float],
+    cycle_months: int,
+) -> tuple[float | None, dict[str, float], list[str]]:
+    """Expected gross crop value per hectare per year (USD) from FAOSTAT national data.
 
-    if is_valid_number(market_access):
-        access_val = int(market_access)  # type: ignore[arg-type]
-        access_scale = _clip(float(access_val) / 5.0, 0.0, 1.0)
-        return _clip(20.0 * mean_market * access_scale, 0.0, 100.0), mean_market, access_val
-
-    # Neutral midpoint scaling (3/5) when optional FieldInfo.market_access is None
-    return _clip(20.0 * mean_market * 0.6, 0.0, 100.0), mean_market, None
+    value = sum over cash crops of (national yield x producer price x share of historical seasons
+    the crop was viable at this location), divided by the cycle length in years. Returns
+    `(value_or_None, per_crop_value, missing_crop_names)`; any crop without current FAOSTAT yield
+    and price makes the whole rotation unscored rather than guessed.
+    """
+    missing: list[str] = []
+    per_crop: dict[str, float] = {}
+    for crop in sequence_crops:
+        cid = str(crop["crop_id"])
+        m = (market_crops or {}).get(cid) or {}
+        y, p = m.get("yield_kg_ha"), m.get("price_usd_t")
+        if not (is_valid_number(y) and is_valid_number(p)):
+            missing.append(str(crop.get("name", cid)))
+            continue
+        per_crop[cid] = float(y) / 1000.0 * float(p) * viable_share_by_crop.get(cid, 0.0)
+    if missing or not per_crop:
+        return None, per_crop, missing
+    years = max(cycle_months, 12) / 12.0
+    return sum(per_crop.values()) / years, per_crop, []
 
 
 def _has_pillar_observations(pillar: str, profile: FieldProfile) -> bool:
@@ -434,8 +454,10 @@ def assess_coverage_and_confidence(
         years_span = sorted({m.year for m in profile.monthly})
         month_lookup = {(m.year, m.month): m for m in profile.monthly}
         missing_climate_months = 0
+        # Months after the newest record (the rest of the current year) have not happened yet.
+        last_month = max(m.month for m in profile.monthly if m.year == years_span[-1])
         for yr in range(years_span[0], years_span[-1] + 1):
-            for mo in range(1, 13):
+            for mo in range(1, (last_month if yr == years_span[-1] else 12) + 1):
                 rec = month_lookup.get((yr, mo))
                 if rec is None or not is_valid_number(rec.rain_mm):
                     missing_climate_months += 1
@@ -655,8 +677,14 @@ def evaluate_rotations(
     priorities: Priorities | None = None,
     scenario: Scenario | None = None,
     requested_rotation_ids: list[str] | None = None,
+    market_crops: dict[str, Any] | None = None,
 ) -> EngineComparisonResult:
-    """Evaluate, score, quantify uncertainty/confidence, and rank candidate rotations for `field`."""
+    """Evaluate, score, quantify uncertainty/confidence, and rank candidate rotations for `field`.
+
+    `market_crops` is the FAOSTAT entry for the field's country (`data/market_faostat.json`). Without
+    it, or when any candidate lacks current FAOSTAT yield and price, income is not scored and its
+    priority weight is shared out over the other three components.
+    """
     validate_parameters_dict(parameters)
     validated_priorities = validate_priorities(priorities or Priorities())
     validated_scenario = validate_scenario(scenario or Scenario())
@@ -680,7 +708,6 @@ def evaluate_rotations(
     max_profile_year = sorted_years[-1]
 
     irrigation_mm = float(parameters["irrigation_mm"][field.irrigation])
-    viable_water_fraction = float(parameters["viable_water_fraction"])
     water_gap_ref_mm = float(parameters["water_gap_ref_mm"])
     n_ref_kg_ha = float(parameters["n_ref_kg_ha"])
     heavy_ref_days = float(parameters["heavy_ref_days"])
@@ -705,6 +732,7 @@ def evaluate_rotations(
     coverage_report = assess_coverage_and_confidence(profile, parameters)
 
     unranked_evals: list[RotationEvaluation] = []
+    yearly_parts_by_rot: dict[str, dict[int, tuple[float, float]]] = {}
 
     for rot in candidates:
         rot_id = str(rot["rotation_id"])
@@ -777,19 +805,21 @@ def evaluate_rotations(
             100.0,
         )
 
-        # Soil components: soil_health, erosion, pest_break
-        soil_health_score, mean_om, total_n_fix = compute_soil_health_score(
-            sequence_crops=seq_crops,
-            cover_crop=cover_crop,
-            n_ref_kg_ha=n_ref_kg_ha,
-        )
-
         cal_bare_with_cover, cal_bare_no_cover, cycle_months = (
             compute_calendar_bare_fraction(
                 sequence_crops=seq_crops,
                 cover_crop=cover_crop,
                 region_id=field.region_id,
             )
+        )
+
+        # Soil components: soil_health (living roots + legume N), erosion, pest_break
+        soil_health_score, living_roots, total_n_fix = compute_soil_health_score(
+            sequence_crops=seq_crops,
+            cover_crop=cover_crop,
+            n_ref_kg_ha=n_ref_kg_ha,
+            living_root_share=1.0 - cal_bare_with_cover,
+            weights=parameters.get("soil_health_weights"),
         )
 
         if is_existing and bare_days_modis is not None:
@@ -819,18 +849,17 @@ def evaluate_rotations(
             100.0,
         )
 
-        income_score, mean_market, access_used = compute_income_score(
+        viable_share_by_crop: dict[str, float] = {}
+        for cid in set(seq_ids):
+            crop_seasons = [se for se in valid_seasons if se.crop_id == cid]
+            viable_share_by_crop[cid] = (
+                sum(1 for se in crop_seasons if se.viable) / len(crop_seasons) if crop_seasons else 0.0
+            )
+        annual_value, crop_values, market_missing = compute_crop_value(
             sequence_crops=seq_crops,
-            market_access=field.market_access,
-        )
-
-        overall_score = _clip(
-            validated_priorities.w_water * water_score
-            + validated_priorities.w_soil * soil_score
-            + validated_priorities.w_income * income_score
-            + validated_priorities.w_resilience * resilience_score,
-            0.0,
-            100.0,
+            market_crops=market_crops,
+            viable_share_by_crop=viable_share_by_crop,
+            cycle_months=cycle_months,
         )
 
         # Per-year overall scores for 10th and 90th percentile uncertainty bounds (Section 7 / 8.10)
@@ -851,7 +880,8 @@ def evaluate_rotations(
             ]
         )
 
-        annual_overalls: dict[int, float] = {}
+        # (year -> (water, resilience)); overall is combined after income is known for every rotation.
+        yearly_parts: dict[int, tuple[float, float]] = {}
         for yr in candidate_years:
             yr_valid = [se for se in seasons_by_year[yr] if se.complete]
             yr_resilience = 100.0 * float(
@@ -869,18 +899,8 @@ def evaluate_rotations(
             yr_water = 100.0 * (
                 1.0 - _clip(yr_deficit / water_gap_ref_mm, 0.0, 1.0)
             )
-            yr_overall = (
-                validated_priorities.w_water * yr_water
-                + validated_priorities.w_soil * soil_score
-                + validated_priorities.w_income * income_score
-                + validated_priorities.w_resilience * yr_resilience
-            )
-            annual_overalls[yr] = round(_clip(yr_overall, 0.0, 100.0), 2)
-
-        annual_values = np.array(list(annual_overalls.values()), dtype=float)
-        # Exact mathematical 10th and 90th percentiles — never clamped to include the mean
-        overall_low = round(float(np.percentile(annual_values, 10)), 2)
-        overall_high = round(float(np.percentile(annual_values, 90)), 2)
+            yearly_parts[yr] = (yr_water, yr_resilience)
+        yearly_parts_by_rot[rot_id] = yearly_parts
 
         viable_count = sum(1 for se in valid_seasons if se.viable)
         heat_fail_count = sum(1 for se in valid_seasons if se.heat_ok is False)
@@ -899,17 +919,16 @@ def evaluate_rotations(
                     "water": round(water_score, 2),
                     "soil": round(soil_score, 2),
                     "resilience": round(resilience_score, 2),
-                    "income": round(income_score, 2),
                 },
                 soil_subscores={
                     "soil_health": round(soil_health_score, 2),
                     "erosion": round(erosion_score, 2),
                     "pest_break": round(pest_break_score, 2),
                 },
-                overall=round(overall_score, 2),
-                overall_low=overall_low,
-                overall_high=overall_high,
-                annual_overalls=annual_overalls,
+                overall=0.0,  # combined in the second pass below
+                overall_low=0.0,
+                overall_high=0.0,
+                annual_overalls={},
                 rank=0,  # Assigned deterministically below
                 confidence=coverage_report.confidence,
                 season_evaluations=tuple(season_evals),
@@ -922,7 +941,7 @@ def evaluate_rotations(
                 mean_water_deficit_mm=round(mean_deficit_mm, 2),
                 mean_season_rain_mm=round(mean_rain_mm, 2),
                 irrigation_mm=irrigation_mm,
-                mean_om_effect=round(mean_om, 3),
+                living_root_share=round(living_roots, 4),
                 total_n_fix_kg_ha=round(total_n_fix, 2),
                 bare_fraction=round(bare_fraction, 4),
                 bare_fraction_source=bare_source,
@@ -931,8 +950,10 @@ def evaluate_rotations(
                 cycle_months=cycle_months,
                 slope_deg_used=slope_deg_val,
                 heavy_rain_days_used=heavy_rain_val,
-                mean_market_score=round(mean_market, 2),
-                market_access_used=access_used,
+                annual_value_usd_ha=None if annual_value is None else round(annual_value, 0),
+                crop_value_usd_ha={k: round(v, 0) for k, v in crop_values.items()},
+                market_missing=tuple(market_missing),
+                income_scored=False,
                 mean_water_demand_mm=round(float(np.mean(demands)), 1),
                 mean_effective_rain_mm=round(float(np.mean(eff_rains)), 1) if eff_rains else 0.0,
                 soil_water_mm=round(float(np.mean([se.soil_water_mm for se in valid_seasons])), 1),
@@ -940,6 +961,55 @@ def evaluate_rotations(
                 soil_awc_m3m3=soil_awc,
             )
         )
+
+    # Second pass: income is relative (best-earning candidate = 100), so it needs every rotation.
+    # It is scored only when every candidate has current FAOSTAT yield and price; otherwise its
+    # weight is shared proportionally over water, soil and resilience.
+    values = [ev.annual_value_usd_ha for ev in unranked_evals]
+    income_ok = bool(values) and all(v is not None for v in values) and max(values) > 0  # type: ignore[type-var]
+    p = validated_priorities
+    if income_ok:
+        w = {"water": p.w_water, "soil": p.w_soil, "income": p.w_income, "resilience": p.w_resilience}
+    else:
+        rest = p.w_water + p.w_soil + p.w_resilience
+        if rest <= 0:
+            w = {"water": 1 / 3, "soil": 1 / 3, "income": 0.0, "resilience": 1 / 3}
+        else:
+            w = {"water": p.w_water / rest, "soil": p.w_soil / rest, "income": 0.0, "resilience": p.w_resilience / rest}
+    max_value = max(values) if income_ok else None  # type: ignore[type-var]
+
+    finalized: list[RotationEvaluation] = []
+    for ev in unranked_evals:
+        scores = dict(ev.scores)
+        income = None
+        if income_ok and max_value:
+            income = round(100.0 * float(ev.annual_value_usd_ha) / float(max_value), 2)  # type: ignore[arg-type]
+            scores["income"] = income
+        overall = _clip(
+            w["water"] * scores["water"] + w["soil"] * scores["soil"]
+            + w["resilience"] * scores["resilience"] + w["income"] * (income or 0.0),
+            0.0, 100.0,
+        )
+        annual = {
+            yr: round(_clip(
+                w["water"] * yw + w["soil"] * scores["soil"] + w["resilience"] * yres + w["income"] * (income or 0.0),
+                0.0, 100.0), 2)
+            for yr, (yw, yres) in yearly_parts_by_rot[ev.rotation_id].items()
+        }
+        arr = np.array(list(annual.values()), dtype=float)
+        finalized.append(
+            RotationEvaluation(**{
+                **ev.__dict__,
+                "scores": scores,
+                "overall": round(overall, 2),
+                # Exact 10th and 90th percentiles of the per-year overall, never clamped to the mean
+                "overall_low": round(float(np.percentile(arr, 10)), 2),
+                "overall_high": round(float(np.percentile(arr, 90)), 2),
+                "annual_overalls": annual,
+                "income_scored": income_ok,
+            })
+        )
+    unranked_evals = finalized
 
     # Deterministic ranking:
     # 1. Descending overall score

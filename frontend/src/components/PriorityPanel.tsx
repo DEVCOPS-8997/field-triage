@@ -54,8 +54,9 @@ function rebalance(p: Priorities, key: WeightKey, next: number): Priorities {
 
 const isEqual = (p: Priorities) => KEYS.every((k) => Math.abs(p[k] - 0.25) < 0.005)
 
-export default function PriorityPanel() {
+export default function PriorityPanel({ incomeNote = null }: { incomeNote?: string | null } = {}) {
   const priorities = useAppStore((s) => s.priorities)
+  const rows = incomeNote ? ROWS.filter((r) => r.component !== 'income') : ROWS
   const setPriorities = useAppStore((s) => s.setPriorities)
   const total = KEYS.reduce((a, k) => a + priorities[k], 0)
   const equal = isEqual(priorities)
@@ -96,7 +97,7 @@ export default function PriorityPanel() {
       </div>
 
       <div className="mt-4 flex flex-col gap-4">
-        {ROWS.map((r) => (
+        {rows.map((r) => (
           <Slider
             key={r.key}
             label={componentLabel[r.component]}
@@ -110,6 +111,14 @@ export default function PriorityPanel() {
             valueText={`${priorities[r.key].toFixed(2)}, ${Math.round(priorities[r.key] * 100)} percent`}
           />
         ))}
+        {incomeNote && (
+          <p
+            className={`m-0 rounded-xl border border-dashed px-3 py-2 ${text.label}`}
+            style={{ borderColor: color.controlBorder, color: color.fg2 }}
+          >
+            <strong style={{ color: color.fg }}>Crop income is not scored here.</strong> {incomeNote}
+          </p>
+        )}
       </div>
 
       <div className="mt-6 flex justify-end">

@@ -34,6 +34,7 @@ def test_explanations_trace_to_calculated_numbers_and_flag_demo_provenance(
         profile=f01_demo_profile,
         parameters=real_catalog.parameters,
         nasa_metadata_by_id=real_catalog.nasa_metadata_by_id,
+        crops_by_id=real_catalog.crops_by_id,
         scenario=scenario,
     )
 
@@ -41,8 +42,8 @@ def test_explanations_trace_to_calculated_numbers_and_flag_demo_provenance(
     assert resp.data_mode == "demo"
     assert resp.scenario_applied is True
     assert "does not replace" in resp.disclaimer
-    assert "demo" in resp.disclaimer.lower()
-    assert "validated=false" in resp.disclaimer
+    assert "demonstration data" in resp.disclaimer.lower()
+    assert "not yet been checked" in resp.disclaimer
     assert "not a NASA forecast" in resp.disclaimer
 
     # Demo profile must never expose 'observed' quality badges
@@ -51,35 +52,28 @@ def test_explanations_trace_to_calculated_numbers_and_flag_demo_provenance(
     existing = next(r for r in resp.rotations if r.is_existing)
     water_alt = next(r for r in resp.rotations if r.rotation_id == "rot_pk_sorghum_chickpea")
 
-    # Existing rotation `why` explains baseline rank plus strongest and weakest relative pillars
-    assert len(existing.why) == 3
-    assert "Strongest relative pillar" in existing.why[1]
-    assert "Primary vulnerability" in existing.why[2]
-
-    # Alternative `why` highlights overall delta + top 2 component differences
-    assert len(water_alt.why) == 3
+    # Existing rotation `why` states its score and rank against the best alternative
+    assert "ranks #" in existing.why[0]
+    # Alternative `why` compares against the current rotation by name
     assert existing.label in water_alt.why[0]
 
-    # Chickpea fixes 50 kg N/ha -> explicitly cited in `benefits`
-    assert any("50 kg N/ha" in b for b in water_alt.benefits)
-    # Cotton-Wheat has 0 kg N/ha -> explicitly cited in `risks`
-    assert any("0 kg N/ha" in r for r in existing.risks)
+    # Chickpea's cited net nitrogen (35 kg/ha) is a benefit with its source attached
+    n_ins = next(i for i in water_alt.insights if i.topic == "nitrogen" and i.kind == "benefit")
+    assert "35 kg" in n_ins.detail and n_ins.source and n_ins.source_url
+    # Cotton-Wheat has no legume -> flagged as a risk
+    assert any(i.topic == "nitrogen" and i.kind == "risk" for i in existing.insights)
 
-    # Local review flags check: unvalidated parameters, farmer_input, demo_polygon, 9 km SMAP, 250 m MODIS
+    # Local checks are specific to the rotation (sowing months) and parameters status
     review_joined = " ".join(existing.needs_local_review)
-    assert "validated=false" in review_joined
-    assert "farmer_input" in review_joined
-    assert "demo_polygon" in review_joined
-    assert "9 km" in review_joined
-    assert "250 m" in review_joined
+    assert "Cotton sown in May" in review_joined
+    assert "agronomist" in review_joined.lower()
 
-    # Demo data gap explicitly noted, and evidence sources clearly indicate demo fixture
-    assert any("data_mode='demo'" in g for g in existing.data_gaps)
+    # Demo data gap explicitly noted; every insight carries a title and detail
+    assert any("Demonstration data" in g for g in existing.data_gaps)
+    assert all(i.title and i.detail for i in existing.insights)
     for ev_item in existing.evidence:
-        assert ev_item.variable
-        assert ev_item.unit
-        assert ev_item.source
-        assert ev_item.interpretation
+        assert ev_item.variable and ev_item.source and ev_item.interpretation and ev_item.group
+        assert ev_item.value is not None
 
 
 def test_missing_pillars_and_gwetroot_fallback_flagged_accurately(
@@ -119,18 +113,19 @@ def test_missing_pillars_and_gwetroot_fallback_flagged_accurately(
         profile=profile,
         parameters=real_catalog.parameters,
         nasa_metadata_by_id=real_catalog.nasa_metadata_by_id,
+        crops_by_id=real_catalog.crops_by_id,
     )
 
     existing = next(r for r in resp.rotations if r.is_existing)
     gaps_text = " ".join(existing.data_gaps)
-    assert "SMAP L4" in gaps_text
-    assert "MODIS MOD13Q1" in gaps_text
-    assert "Copernicus DEM" in gaps_text
-    assert "bare_days_est_mean" in gaps_text
-    assert "missing rainfall/temperature" in gaps_text
-
-    smap_ev = next(e for e in existing.evidence if e.variable == "smap_rootzone_mean_m3m3")
-    assert smap_ev.value is None
+    # Sources that were never part of the analysis are not listed as gaps
+    assert "SMAP" not in gaps_text and "MODIS" not in gaps_text
+    assert "Slope unknown" in gaps_text
+    assert "months of weather missing" in gaps_text
+    # No market data -> income gap is explained
+    assert "Income not compared" in gaps_text
+    # Evidence never contains empty (null) rows
+    assert all(e.value is not None for e in existing.evidence)
 
     # Also verify MERRA-2 GWETROOT fallback labeling when SMAP falls back to POWER GWETROOT
     gwet_dict = make_synthetic_profile_dict(
@@ -138,6 +133,7 @@ def test_missing_pillars_and_gwetroot_fallback_flagged_accurately(
     )
     gwet_dict["data_sources"]["smap"] = "NASA POWER GWETROOT (MERRA-2 model output)"
     gwet_dict["data_quality"]["smap"] = "derived"
+    gwet_dict["climatology"]["gwetroot_mean"] = 0.42
     gwet_prof = FieldProfile.model_validate(gwet_dict)
     gwet_engine = evaluate_rotations(
         field=f05,
@@ -153,5 +149,6 @@ def test_missing_pillars_and_gwetroot_fallback_flagged_accurately(
         profile=gwet_prof,
         parameters=real_catalog.parameters,
         nasa_metadata_by_id=real_catalog.nasa_metadata_by_id,
+        crops_by_id=real_catalog.crops_by_id,
     )
-    assert any("GWETROOT" in item for item in gwet_resp.rotations[0].needs_local_review)
+    assert any("MERRA-2" in item for item in gwet_resp.rotations[0].needs_local_review)

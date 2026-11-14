@@ -10,8 +10,9 @@
  */
 import { useEffect, useId, useRef, type ComponentType } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { BookOpenText, LayoutDashboard, Sprout, Wheat, type LucideIcon } from 'lucide-react'
-import { useAppStore } from '../../store/useAppStore'
+import { BookOpenText, LayoutDashboard, LogOut, Sprout, UserPlus, UserRound, Wheat, type LucideIcon } from 'lucide-react'
+import { useAuth } from '../../store/useAuth'
+import { accountApi } from '../../api/account'
 import DisclaimerImpl from '../Disclaimer'
 import { Tooltip } from '../ui/Tooltip'
 import { cn } from '../ui/cn'
@@ -20,7 +21,7 @@ import { cn } from '../ui/cn'
 const Disclaimer = DisclaimerImpl as unknown as ComponentType<{ variant?: 'card' | 'inline' }>
 
 interface NavItem {
-  key: 'overview' | 'field' | 'methodology'
+  key: 'overview' | 'field' | 'account' | 'methodology'
   label: string
   icon: LucideIcon
   to: string | null // null = disabled
@@ -29,18 +30,13 @@ interface NavItem {
 
 function useNavItems(): NavItem[] {
   const { pathname } = useLocation()
-  const selectedFieldId = useAppStore((s) => s.selectedFieldId)
-  const routeFieldId = pathname.match(/^\/fields\/([^/]+)/)?.[1]
-  const fieldId = routeFieldId ? decodeURIComponent(routeFieldId) : selectedFieldId
+  const user = useAuth((s) => s.user)
   return [
     { key: 'overview', label: 'Overview', icon: LayoutDashboard, to: '/', active: pathname === '/' },
-    {
-      key: 'field',
-      label: 'Field detail',
-      icon: Wheat,
-      to: fieldId ? `/fields/${encodeURIComponent(fieldId)}` : null,
-      active: pathname.startsWith('/fields/'),
-    },
+    // Saved fields are personal: the nav shows them only to signed-in users.
+    user
+      ? { key: 'field', label: 'My fields', icon: Wheat, to: '/my-fields', active: pathname.startsWith('/my-fields') }
+      : { key: 'account', label: 'Sign in', icon: UserRound, to: '/account', active: pathname.startsWith('/account') },
     {
       key: 'methodology',
       label: 'Methodology',
@@ -126,10 +122,51 @@ function Sidebar({ items }: { items: NavItem[] }) {
           ))}
         </ul>
       </nav>
-      <div className="mt-auto">
+      <div className="mt-auto flex flex-col gap-3">
+        <AccountBox />
         <Disclaimer variant="card" />
       </div>
     </aside>
+  )
+}
+
+/** Sidebar account block: "Create account" for visitors, name + sign out for signed-in users. */
+function AccountBox() {
+  const user = useAuth((s) => s.user)
+  if (!user) {
+    return (
+      <Link
+        to="/account"
+        className="flex min-h-[48px] items-center gap-3 rounded-[var(--radius-control)] border border-accent/40 bg-accent/10 px-4 text-label font-semibold text-fg no-underline hover:bg-accent/18"
+      >
+        <UserPlus size={20} strokeWidth={1.75} aria-hidden className="text-accent" />
+        <span className="flex flex-col">
+          Create account
+          <span className="font-normal text-fg-3">to save your fields</span>
+        </span>
+      </Link>
+    )
+  }
+  return (
+    <div className="flex items-center gap-3 rounded-[var(--radius-control)] bg-glass-flat px-3 py-2">
+      <span className="flex size-[36px] shrink-0 items-center justify-center rounded-full bg-accent/18 font-semibold text-accent">
+        {user.name.slice(0, 1).toUpperCase()}
+      </span>
+      <Link to="/account" className="flex min-w-0 flex-1 flex-col no-underline">
+        <span className="truncate text-label font-semibold text-fg">{user.name}</span>
+        <span className="truncate text-[12px] text-fg-3">{user.email}</span>
+      </Link>
+      <Tooltip content="Sign out" side="top">
+        <button
+          type="button"
+          aria-label="Sign out"
+          onClick={() => void accountApi.logout()}
+          className="flex size-[36px] items-center justify-center rounded-full text-fg-2 hover:bg-[rgba(255,255,255,0.08)] hover:text-fg"
+        >
+          <LogOut size={18} strokeWidth={1.75} aria-hidden />
+        </button>
+      </Tooltip>
+    </div>
   )
 }
 
@@ -201,7 +238,21 @@ function MobileHeader() {
         <span className="font-display text-heading font-semibold text-fg">Field Shift</span>
         <span className="text-label font-normal text-fg-3">Advisor</span>
       </Link>
+      <MobileAccount />
     </header>
+  )
+}
+
+function MobileAccount() {
+  const user = useAuth((s) => s.user)
+  return (
+    <Link
+      to="/account"
+      aria-label={user ? `Account: ${user.name}` : 'Create account or sign in'}
+      className="ml-auto flex size-[40px] items-center justify-center rounded-full bg-accent/14 font-semibold text-accent no-underline"
+    >
+      {user ? user.name.slice(0, 1).toUpperCase() : <UserPlus size={20} strokeWidth={1.75} aria-hidden />}
+    </Link>
   )
 }
 

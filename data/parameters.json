@@ -12,6 +12,7 @@
 "heavy_ref_days":3,
 "ndvi_bare_threshold":0.2,
 "soil_weights":{"soil_health":0.5,"erosion":0.3,"pest_break":0.2},
+"soil_health_weights":{"living_roots":0.5,"nitrogen":0.5},
 "pest_break_same_family":20,
 "pest_break_diff_family":100,
 "confidence":{"high_coverage":0.8,"medium_coverage":0.5,"high_min_years":10},

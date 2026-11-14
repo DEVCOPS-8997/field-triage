@@ -168,5 +168,4 @@ def get_settings(
         power_cache_dir=cache_dir,
         location_rate_limit_per_minute=int(_env_num("LOCATION_RATE_LIMIT_PER_MINUTE", 10, int)),
         location_data_cache_dir=(REPO_ROOT / Path(os.getenv("LOCATION_DATA_CACHE_DIR", "data/cache/location"))).resolve(),
-        location_provider_timeout_seconds=float(_env_num("LOCATION_PROVIDER_TIMEOUT_SECONDS", 20.0, float)),
-    )
+        location_provider_timeout_seconds=float(_env_num("LOCATION_PROVIDER_TIMEOUT_SECONDS", 20.0, float)),    )

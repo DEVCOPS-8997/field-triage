@@ -86,6 +86,9 @@ def test_frozen_schema_exact_field_names() -> None:
         "unit",
         "source",
         "interpretation",
+        "label",
+        "group",
+        "source_url",
     ]
     assert list(RotationScore.model_fields.keys()) == [
         "rotation_id",
@@ -104,6 +107,8 @@ def test_frozen_schema_exact_field_names() -> None:
         "data_gaps",
         "needs_local_review",
         "evidence",
+        "insights",
+        "annual_value_usd_ha",
     ]
     assert list(CompareResponse.model_fields.keys()) == [
         "field_id",
@@ -112,6 +117,7 @@ def test_frozen_schema_exact_field_names() -> None:
         "data_mode",
         "data_quality",
         "disclaimer",
+        "income_status",
     ]
 
 

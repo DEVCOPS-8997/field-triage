@@ -14,7 +14,7 @@ from app.services.rotation_engine import (
     assess_coverage_and_confidence,
     compute_calendar_bare_fraction,
     compute_erosion_score,
-    compute_income_score,
+    compute_crop_value,
     compute_pest_break_score,
     compute_soil_health_score,
     evaluate_rotations,
@@ -229,15 +229,14 @@ def test_component_equations_soil_erosion_pest_and_income(real_catalog: Any) -> 
     """Hand-verify Section 7 equations for soil_health, erosion, pest_break, and income."""
     crops = real_catalog.crops_by_id
 
-    # 1. Soil health: Sorghum (om=1, n=0) + Chickpea (om=1, n=50), n_ref=100
-    # mean_om = 1.0 -> 0.7 * (1+1)/3 = 1.4/3 = 0.4666667
-    # n_term = 0.3 * (50/100) = 0.15 -> sum = 0.6166667 -> 61.6667
-    sh, mean_om, total_n = compute_soil_health_score(
-        [crops["sorghum"], crops["chickpea"]], None, n_ref_kg_ha=100.0
+    # 1. Soil health: Sorghum (n=0) + Chickpea (net n=35, cited), n_ref=100, living roots 0.75
+    # 0.5 * 0.75 + 0.5 * 0.35 = 0.55 -> 55.0
+    sh, roots, total_n = compute_soil_health_score(
+        [crops["sorghum"], crops["chickpea"]], None, n_ref_kg_ha=100.0, living_root_share=0.75
     )
-    assert math.isclose(mean_om, 1.0)
-    assert math.isclose(total_n, 50.0)
-    assert math.isclose(sh, 100.0 * (0.7 * (2.0 / 3.0) + 0.15), rel_tol=1e-6)
+    assert math.isclose(roots, 0.75)
+    assert math.isclose(total_n, 35.0)
+    assert math.isclose(sh, 55.0, rel_tol=1e-6)
 
     # 2. Pest break:
     # Same family: maize (poaceae) -> wheat (poaceae) => 20.0
@@ -260,11 +259,21 @@ def test_component_equations_soil_erosion_pest_and_income(real_catalog: Any) -> 
     er_null = compute_erosion_score(0.5, slope_deg=None, heavy_rain_days_mean=0.1, heavy_ref_days=3.0)
     assert math.isclose(er_null, 90.0, rel_tol=1e-6)
 
-    # 4. Income: Corn-Soy (market_score 4 & 4 -> mean 4.0), market_access=5 -> 20 * 4 * (5/5) = 80.0
-    inc, mm, acc = compute_income_score([crops["maize"], crops["soybean"]], market_access=5)
-    assert math.isclose(inc, 80.0)
-    assert math.isclose(mm, 4.0)
-    assert acc == 5
+    # 4. Crop value: maize 10 t/ha x $200 (all seasons viable) + soybean 3 t/ha x $400 (half viable)
+    # = 2000 + 600 = 2600 over a 24-month cycle -> 1300 USD/ha/year
+    market = {
+        "maize": {"yield_kg_ha": 10000, "price_usd_t": 200},
+        "soybean": {"yield_kg_ha": 3000, "price_usd_t": 400},
+    }
+    val, per_crop, missing = compute_crop_value(
+        [crops["maize"], crops["soybean"]], market, {"maize": 1.0, "soybean": 0.5}, cycle_months=24
+    )
+    assert math.isclose(val, 1300.0)
+    assert per_crop == {"maize": 2000.0, "soybean": 600.0}
+    assert missing == []
+    # A crop without FAOSTAT price makes the rotation unscored, never guessed
+    val2, _, missing2 = compute_crop_value([crops["sorghum"], crops["berseem"]], market, {}, cycle_months=12)
+    assert val2 is None and missing2 == ["Sorghum", "Berseem Clover"]
 
 
 def test_cover_crop_improves_soil_and_erosion_without_distorting_cash_metrics(
@@ -298,13 +307,14 @@ def test_cover_crop_improves_soil_and_erosion_without_distorting_cash_metrics(
     base = next(ev for ev in res.evaluations if ev.rotation_id == "rot_us_corn_soy")
     rye = next(ev for ev in res.evaluations if ev.rotation_id == "rot_us_corn_soy_rye")
 
-    # Cover crop boosts soil_health (cereal_rye om_effect=2) and erosion (bare 0.5 -> 0.0)
+    # Cover crop boosts soil_health (more living-root months) and erosion (bare 0.5 -> 0.0)
     assert rye.soil_subscores["soil_health"] > base.soil_subscores["soil_health"]
     assert rye.soil_subscores["erosion"] > base.soil_subscores["erosion"]
     assert rye.scores["soil"] > base.scores["soil"]
 
     # Cash-crop metrics remain strictly identical (cereal_rye is NOT a commercial cash crop)
-    assert rye.scores["income"] == base.scores["income"]
+    assert rye.scores.get("income") == base.scores.get("income")
+    assert rye.annual_value_usd_ha == base.annual_value_usd_ha
     assert rye.scores["water"] == base.scores["water"]
     assert rye.scores["resilience"] == base.scores["resilience"]
     assert rye.soil_subscores["pest_break"] == base.soil_subscores["pest_break"]
@@ -401,7 +411,8 @@ def test_priorities_scenario_ranking_ties_and_unclamped_percentiles(
         priorities=Priorities(w_water=0.05, w_soil=0.05, w_income=0.85, w_resilience=0.05),
     )
     assert water_focused.evaluations[0].rotation_id == "rot_pk_sorghum_chickpea"
-    assert income_focused.evaluations[0].rotation_id != "rot_pk_sorghum_chickpea"
+    # No market data passed -> income is not scored and its weight goes to the other components
+    assert all("income" not in ev.scores and not ev.income_scored for ev in income_focused.evaluations)
 
     # Drought + warming scenario lowers water/resilience scores relative to baseline
     stressed = evaluate_rotations(

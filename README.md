@@ -1,264 +1,278 @@
-# Field Shift Advisor
+<div align="center">
 
-A decision-support tool that compares crop-rotation options for a field, using NASA Earth-observation data and local agricultural information.
+<img src="https://capsule-render.vercel.app/api?type=waving&height=230&color=0:052e16,45:15803d,100:4ade80&text=Field%20Shift%20Advisor&fontColor=ffffff&fontSize=58&fontAlignY=38&desc=Smarter%20crop%20rotations%20from%2020%20years%20of%20NASA%20Earth%20data&descAlignY=60&descSize=18&animation=fadeIn" alt="Field Shift Advisor" width="100%"/>
 
-> **Decision support only.** Results are scores and explanations based on stated assumptions. They do not guarantee agronomic outcomes. Local agronomic review is still needed.
+<a href="#-what-it-does">
+  <img src="https://readme-typing-svg.demolab.com?font=Fraunces&weight=600&size=22&duration=3200&pause=900&color=4ADE80&center=true&vCenter=true&width=760&lines=Draw+your+field+on+the+map+%F0%9F%97%BA%EF%B8%8F;Replay+every+past+season+with+NASA+POWER+%F0%9F%9B%B0%EF%B8%8F;Compare+5+rotations+on+water%2C+soil%2C+income+%26+resilience+%F0%9F%8C%BE;Plain+words.+Real+sources.+No+guesswork.+%E2%9C%85" alt="Typing intro"/>
+</a>
 
-## 1. Project Overview
+<br/>
 
-For a selected field, the app:
+<img src="https://img.shields.io/badge/NASA%20Space%20Apps-2026-0B3D91?style=for-the-badge&logo=nasa&logoColor=white" alt="NASA Space Apps 2026"/>
+<img src="https://img.shields.io/badge/Data-NASA%20POWER%20%C2%B7%20SMAP%20%C2%B7%20MODIS-FC3D21?style=for-the-badge&logo=satellite&logoColor=white" alt="NASA data"/>
+<img src="https://img.shields.io/badge/Tests-78%20passing-22c55e?style=for-the-badge&logo=pytest&logoColor=white" alt="78 tests passing"/>
 
-1. Loads climate, soil-moisture and vegetation history (NASA data).
-2. Scores several crop rotations (current and alternatives) on water, soil, income and resilience.
-3. Shows scores, benefits, risks, data gaps, evidence, data source and confidence.
+<img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
+<img src="https://img.shields.io/badge/FastAPI-0.163-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI"/>
+<img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React"/>
+<img src="https://img.shields.io/badge/TypeScript-7-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"/>
+<img src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite"/>
+<img src="https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind"/>
+<img src="https://img.shields.io/badge/Leaflet-maps-199900?style=flat-square&logo=leaflet&logoColor=white" alt="Leaflet"/>
+<img src="https://img.shields.io/badge/Supabase-PostGIS-3FCF8E?style=flat-square&logo=supabase&logoColor=white" alt="Supabase"/>
 
-NASA data supports the decision by showing how much rain, heat and soil moisture a field has had, and how green the vegetation was. The rotation engine compares these records with each crop's calendar and needs.
+<br/><br/>
 
-Scoring weights and thresholds in `data/parameters.json` are marked `"validated": false, "status": "illustrative"`. They are assumptions, not validated values.
+**[🚀 Quick start](#-quick-start) · [🛰️ NASA data](#%EF%B8%8F-nasa-data-we-use) · [🧪 How scoring works](#-how-the-science-works) · [📖 Full documentation](docs/PROJECT_DOCUMENTATION.md)**
 
-## 2. System Architecture
+</div>
 
-| Module | Role | Where |
+---
+
+> [!IMPORTANT]
+> **Decision support, not a forecast.** Field Shift Advisor shows how each crop rotation *would have done* across 20+ years of real NASA weather at your spot. It supports farmers and advisers; it does not replace them, a soil test, or a local agronomist.
+
+## 🌱 The problem
+
+Farmers face hotter flowering seasons, erratic rain, falling water tables and tired soil. A rotation choice lasts for years, and a crop that helps soil in one village can **run out of water, get burned by heat, or miss the market** in the next. Most farmers make this choice without any climate evidence for their own field.
+
+## ✨ What it does
+
+<table>
+<tr>
+<td width="33%" align="center">
+
+### 🗺️ Mark your field
+Search your village or use GPS, then draw the field as a **free shape, rectangle or circle**. The area (m² · ha · acres), perimeter and each side's length update live.
+
+</td>
+<td width="33%" align="center">
+
+### 🛰️ Replay NASA history
+The app downloads **20+ years of daily NASA POWER weather** for that spot, plus soil (SoilGrids) and slope (Copernicus DEM), and replays **every past season** of every crop.
+
+</td>
+<td width="33%" align="center">
+
+### 🌾 Compare & decide
+It ranks **5 rotations, including yours**, on 💧 Water · 🪱 Soil · 💰 Income · 🛡️ Resilience, weighted by **your** priorities, with plain-language reasons and a source for each.
+
+</td>
+</tr>
+</table>
+
+## 📸 Screenshots
+
+<div align="center">
+
+| 🏠 Start anywhere | 🏆 Best rotation for this spot |
+|:---:|:---:|
+| <img src="docs/screenshots/overview.png" alt="Overview map" width="100%"/> | <img src="docs/screenshots/analysis.png" alt="Analysis summary" width="100%"/> |
+| **📊 Compare all rotations** | **💬 Benefits & risks, with sources** |
+| <img src="docs/screenshots/compare.png" alt="Rotation leaderboard" width="100%"/> | <img src="docs/screenshots/details.png" alt="Rotation details" width="100%"/> |
+
+<img src="docs/screenshots/field-editor.png" alt="Draw your field" width="80%"/>
+
+<sub>✏️ <b>Add a field:</b> draw it on satellite imagery, and the area is measured on the sphere and checked again by PostGIS.</sub>
+
+</div>
+
+## 🎯 Built for the challenge
+
+| Challenge asks for… | Field Shift Advisor gives… |
+|---|---|
+| 🛰️ NASA Earth observations + local soil, crops, priorities | NASA POWER (8 parameters) + SoilGrids + Copernicus DEM + crop catalog + your farm form |
+| 🔁 Compare **≥ 3 rotations including the current one** | **5 per region**: conventional, water-saving, soil-building, income, with **"Your current"** labelled |
+| ❓ Why · 📑 evidence · ✅ benefits · ⚠️ risks · 🕳️ gaps | A tab for each rotation, every line linked to FAO / USDA / journal sources |
+| 🌡️ Heat, ❄️ frost, 🌧️ rain extremes, 💧 water balance | Heat days at flowering, frost days, heavy-rain days ≥25 mm, FAO-56 crop water demand |
+| 🟫 Bare-soil periods, 🐛 pest-cycle breaks, 🫘 nitrogen | Living-root months, NRCS-328 pest break, sourced legume N (bags of urea saved) |
+| 🎚️ Scenario sliders and uncertainty | Rain 60–140 %, warming +0…+4 °C, 10th–90th percentile score range, confidence level |
+| 👩‍🌾 Farmer-friendly, supports local expertise | Plain words, cards hidden when there is no data, a "check locally" list on every result |
+
+## 🛰️ NASA data we use
+
+<details open>
+<summary><b>NASA POWER Daily API</b>: live for every analysis (2005 → today)</summary>
+
+<br/>
+
+`GET https://power.larc.nasa.gov/api/temporal/daily/point` · `community=AG` · no key needed · cached per 0.5° cell
+
+| Parameter | What it is | Unit | Used for |
+|---|---|---|---|
+| `PRECTOTCORR` | Bias-corrected precipitation (MERRA-2) | mm/day | Rain, effective rain, heavy-rain days, dry spells |
+| `T2M` | Mean air temperature, 2 m | °C | Monthly climate, warming scenario |
+| `T2M_MAX` | Max temperature, 2 m | °C | 🔥 Heat days ≥ 30/34/38/42 °C at flowering |
+| `T2M_MIN` | Min temperature, 2 m | °C | ❄️ Frost days ≤ 0 °C |
+| `RH2M` | Relative humidity, 2 m | % | FAO-56 Penman-Monteith ETo |
+| `WS2M` | Wind speed, 2 m | m/s | FAO-56 Penman-Monteith ETo |
+| `ALLSKY_SFC_SW_DWN` | Solar radiation (CERES) | MJ/m²/day | FAO-56 Penman-Monteith ETo |
+| `GWETROOT` | Root-zone soil wetness (MERRA-2) | 0–1 | Soil-moisture evidence and "right now" status |
+
+</details>
+
+<details>
+<summary><b>SMAP L4 & MODIS</b>: pilot-field pipeline (Google Earth Engine)</summary>
+
+<br/>
+
+| Dataset | ID | Attributes |
 |---|---|---|
-| M1 | NASA data extraction and integration | `pipeline/`, `data/raw/`, `data/processed/` |
-| M2 | Backend API, data loading, rotation engine, scoring, explanations | `backend/` |
-| M3 | Crop, rotation, field and source data | `data/*.json`, `data/validate_data.py` |
-| M4 | React frontend | `frontend/` |
+| 💧 SMAP L4 soil moisture, 9 km, 3-hourly → daily | `NASA/SMAP/SPL4SMGP/008` | `sm_surface`, `sm_rootzone` (m³/m³) |
+| 🌿 MODIS Terra vegetation, 250 m, 16-day | `MOD13Q1 v061` | `NDVI`, `EVI`, `SummaryQA` |
+
+Scripts are in [`pipeline/`](pipeline/); the integrated daily file is in [`data/processed/F01/`](data/processed/F01/).
+
+</details>
+
+<details>
+<summary><b>Partner and other open data</b></summary>
+
+<br/>
+
+| Source | Use |
+|---|---|
+| 🇪🇺 **Copernicus DEM GLO-30** (ESA / EU, public AWS tiles) | Elevation and slope (plane fit over ~330 m), used in the erosion score |
+| 🌍 **ISRIC SoilGrids v2.0** | Clay, sand, organic carbon, pH (0–30 cm), giving texture and water-holding capacity |
+| 🌾 **FAOSTAT** (UN FAO) | National yield and producer price for the income score (latest 3 years) |
+| 🗺️ OpenStreetMap (Nominatim, Photon) · Esri basemaps | Address search · map and satellite tiles |
+
+</details>
+
+## 🧪 How the science works
 
 ```mermaid
 flowchart LR
-  N[NASA POWER / SMAP / MODIS] --> M1[M1 pipeline]
-  M1 --> CSV[Integrated daily CSV]
-  CSV --> L[M2 data loader]
-  J[M3 JSON data] --> L
-  L --> E[Rotation engine + explanations]
-  E --> API[FastAPI /api/v1]
-  API --> FE[M4 React app]
+    A["📍 Your point / field"] --> B["🛰️ NASA POWER<br/>20+ yrs daily"]
+    A --> C["🌍 SoilGrids<br/>texture · carbon · pH"]
+    A --> D["⛰️ Copernicus DEM<br/>slope"]
+    B --> E["💧 FAO-56 ETo<br/>Penman-Monteith"]
+    C --> F["🪣 Saxton-Rawls<br/>soil water"]
+    E --> G{"🌾 Replay every<br/>season · every crop"}
+    F --> G
+    D --> H
+    G -->|"heat ✓ frost ✓ water ✓"| H["📊 Scores 0–100<br/>Water · Soil · Income · Resilience"]
+    I["🎚️ Your priorities"] --> H
+    H --> J["💬 Plain-language insights<br/>+ sources"]
+
+    style A fill:#14532d,stroke:#4ade80,color:#fff
+    style G fill:#166534,stroke:#4ade80,color:#fff
+    style H fill:#15803d,stroke:#bbf7d0,color:#fff
+    style J fill:#22c55e,stroke:#052e16,color:#052e16
 ```
 
-Each module was built by its own contributor. This repository combines them.
-
-## 3. Technology Stack
-
-- **Backend:** Python, FastAPI, Uvicorn, Pydantic v2, pandas, numpy, scipy, pyarrow, pymannkendall, httpx, python-dotenv, pytest.
-- **Pipeline (M1):** Python scripts (see `pipeline/requirements.txt`) including Google Earth Engine for SMAP and MODIS, and the NASA POWER API.
-- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, React Router, Leaflet / react-leaflet, Recharts.
-- **Data storage:** JSON and CSV files (no database).
-
-## 4. Backend Architecture
-
-```
-backend/app/
-  main.py                    FastAPI app, CORS, error handlers, router registration
-  config.py                  Settings from environment (.env)
-  api/                       Routers: health, fields, rotations, crops, meta, now
-  models/schemas.py          Pydantic contracts (FieldProfile, CompareRequest/Response, ...)
-  services/data_loader.py    Loads JSON data and field profiles
-  services/m1_profile.py     Builds an observed FieldProfile from the M1 CSV
-  services/rotation_engine.py  Deterministic rotation scoring
-  services/explain.py        Evidence, benefits, risks, data gaps, confidence text
-  services/power_live.py     Optional live NASA POWER call for /now
-  utils/validation.py        Typed errors and input checks
-```
-
-**Validation.** Pydantic models define every request and response. Scenario inputs are range-checked (for example `rain_multiplier` 0.6–1.4, `temp_delta_c` 0–4). Priority weights are validated by the engine.
-
-**Rotation engine.** Pure calculation with no AI or network calls. For each historical year it checks each crop season against heat, frost and water limits, then combines four scores (0–100):
-
-| Score | Meaning |
+| Score | How it is calculated |
 |---|---|
-| water | How much of the crop water need rain, soil water and irrigation cover |
-| soil | Soil health, erosion cover and pest break (weights in `parameters.json`) |
-| income | Crop income and market access |
-| resilience | Share of historical seasons that were viable |
+| 💧 **Water** | 100 × (1 − mean seasonal shortfall ÷ 500 mm), where demand = Σ Kc × ETo and supply = USDA-SCS effective rain + soil water + irrigation |
+| 🪱 **Soil** | 50 % soil health (living-root months + legume nitrogen, USDA-NRCS) · 30 % erosion cover (bare months × slope × heavy rain) · 20 % pest break (NRCS 328) |
+| 🛡️ **Resilience** | Share of past seasons where heat, frost **and** water were all OK |
+| 💰 **Income** | FAOSTAT yield × price × viable share. Only scored when **every** crop has current official data; otherwise left out and the other weights are rescaled. |
 
-`overall` is the weighted sum using the user's priorities. `overall_low` and `overall_high` are the 10th and 90th percentiles across historical years. They are not forced to include `overall`.
+> [!NOTE]
+> 🤖 **No AI inside the app.** Scoring is deterministic maths, and the explanations are rule-based. The same input always gives the same answer. Missing data is **never** shown as zero.
 
-**Missing data.** Missing values stay `null`. They are never turned into zero. Demo data never counts toward real observation coverage.
-
-**Confidence.** `HIGH`, `MEDIUM` or `LOW`, based on how much real evidence exists (power, smap, modis, soil, terrain) and how many years are available. Thresholds are in `parameters.json`.
-
-**Explanations.** Each rotation includes `why`, `benefits`, `risks`, `data_gaps`, `needs_local_review` and `evidence` (variable, value, unit, source, interpretation). Responses also carry `data_mode`, `data_quality` and a disclaimer.
-
-**Errors.** All errors return `{"detail": ...}`:
-
-| Status | Cause |
-|---|---|
-| 404 | Unknown field ID |
-| 422 | Invalid request |
-| 503 | Profile unavailable (for example no observed data for that field) or dataset problem |
-| 500 | Unexpected error (details are logged, not returned) |
-
-## 5. NASA Data Pipeline
+## 🏗️ Architecture
 
 ```
-NASA sources -> M1 extraction -> data/raw/<field>/ -> data/processed/<field>/ -> M2 loader -> FieldProfile -> engine -> API
+field-shift/
+├── 🐍 backend/        FastAPI · rotation engine · FAO-56 agromet · explanations · 78 tests
+├── ⚛️ frontend/       React 19 · Vite · Tailwind · Leaflet · Recharts · Supabase auth
+├── 🛰️ pipeline/       NASA POWER / SMAP / MODIS extraction & validation (Earth Engine)
+├── 📦 data/           crops · rotations · regions · parameters · FAOSTAT market · NASA data
+├── 🗄️ supabase/       Postgres + PostGIS schema with Row-Level Security
+└── 📖 docs/           full project documentation + screenshots
 ```
 
-| Source | Use | Limits |
-|---|---|---|
-| NASA POWER | Daily rain, temperature, humidity, solar radiation | Gridded data, not field sensors |
-| SMAP L4 | Surface and root-zone soil moisture | About 9–11 km cells, a regional estimate |
-| MODIS NDVI/EVI | Vegetation greenness | About 250 m, 16-day composite, not an instant measurement |
+<details>
+<summary><b>🔌 REST API</b> (<code>/api/v1</code>, docs at <code>localhost:8000/docs</code>)</summary>
 
-`pipeline/` holds the extraction, integration and validation scripts. `integrate_nasa_data.py` writes `data/processed/F01/F01_nasa_integrated_daily.csv` (daily rows, 2015-03-31 to 2026-11-09).
-
-**How the CSV becomes a profile** (`m1_profile.py`):
-- Monthly values are only reported if at least 80% of the month's days exist.
-- NDVI uses one value per 16-day composite, keeping quality flags 0 and 1 only.
-- Annual statistics use complete calendar years only.
-- Source descriptions and retrieval dates come from the `*_metadata.json` files in `data/raw/F01/`.
-
-**Current data coverage**
-
-| Field | Data |
-|---|---|
-| F01 | Real NASA observations (POWER, SMAP, MODIS) |
-| F02–F08 | **Demo only.** No real data in the repository |
-
-In `processed` mode, F02–F08 return a 503 explaining that no observed data exists. In `demo` mode they return synthetic profiles labelled `demo`.
-
-**Not available yet:** soil (SoilGrids) and terrain (SRTM) values. They are reported as `unavailable`. Bare-soil days, evapotranspiration and water deficit cannot be derived from the M1 CSV and are left missing.
-
-## 6. Database and Data Loading
-
-**There is no database.** No SQL, migrations or seeding exist. All data is read from files:
-
-| Data | File |
-|---|---|
-| Fields (location, soil type, irrigation, current rotation, boundary) | `data/fields.json` |
-| Crops | `data/crops.json` |
-| Rotations | `data/rotations.json` |
-| Scoring parameters | `data/parameters.json` |
-| NASA source descriptions | `data/nasa_metadata.json` |
-| Demo profiles (synthetic) | `data/demo/profiles/F01..F08.json` |
-| Real observations | `data/processed/F01/F01_nasa_integrated_daily.csv` |
-
-`DataLoader` reads and caches the JSON files at first use. For a profile:
-- `DATA_MODE=demo`: reads `data/demo/profiles/<id>.json`.
-- `DATA_MODE=processed`: reads `data/processed/<id>/profile.json` if present, otherwise builds the profile from the integrated CSV (cached until the file changes).
-
-The profile's public `data_mode` is `demo` or `observed`. Run `python data/validate_data.py` to check the JSON files.
-
-## 7. Frontend Integration
-
-- `frontend/src/api/client.ts` makes all requests. The base URL is `VITE_API_URL`.
-- `GET /api/v1/fields` and `/fields/{id}/profile` provide field data. `POST /api/v1/rotations/compare` sends the field, priorities and scenario, and the pages show the returned scores.
-- Backend error messages (the `detail` text) are included in thrown errors. If a field cannot be loaded, the field page shows "Could not load this field" with a link back.
-- **Mock mode:** `VITE_USE_MOCK=true` reads static demo files from `frontend/public/mock/` and needs no backend. **Backend mode:** `VITE_USE_MOCK=false`.
-- Field boundaries are hand-drawn demo polygons, not surveyed parcels. The UI says so.
-
-## 8. API Reference
-
-Base path: `/api/v1`. Interactive docs: `http://localhost:8000/docs`.
+<br/>
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/health` | Status and active data mode |
-| GET | `/fields` | List fields |
-| GET | `/fields/{field_id}/profile` | Field profile (monthly history, climatology, soil, terrain, now, sources, quality) |
-| GET | `/fields/{field_id}/now` | Current status (FAVORABLE / WATCH / STRESSED) with reasons. Can use live NASA POWER |
-| POST | `/rotations/compare` | Compare rotations for a field |
-| GET | `/rotations` | List rotations |
-| GET | `/crops` | List crops |
-| GET | `/meta/sources` | NASA source metadata |
-| POST | `/locations/compare` | Compare rotations for any GPS point in a supported region (live NASA POWER) |
+| `POST` | `/locations/compare` | ⭐ Rank rotations for a point |
+| `GET` | `/locations/region` | Region and rotations for a point |
+| `GET` | `/locations/data` | SoilGrids + DEM for any point |
+| `GET` | `/regions` · `/rotations` · `/crops` · `/meta/sources` | Catalog |
+| `GET` | `/geocode?q=` | Address → coordinates |
+| `GET` | `/health` | Status |
 
-`POST /rotations/compare` body:
+</details>
 
-```json
-{
-  "field_id": "F01",
-  "priorities": {"w_water": 0.25, "w_soil": 0.25, "w_income": 0.25, "w_resilience": 0.25},
-  "scenario": {"rain_multiplier": 1.0, "temp_delta_c": 0.0},
-  "rotation_ids": null
-}
-```
-
-Only `field_id` is required. The response contains ranked `rotations`, `data_mode`, `data_quality` and a `disclaimer`.
-
-### Live GPS analysis (`POST /api/v1/locations/compare`)
-
-Works for any point inside a supported region, without a saved field. Flow: coordinates, region check (`data/regions.json`), NASA POWER daily history (2005 to latest, cached), temporary `FieldProfile` (`profile_from_daily` in `m1_profile.py`), then the unchanged `evaluate_rotations()`.
-
-```json
-{
-  "location": {"lat": 31.42, "lon": 73.08},
-  "irrigation": "limited",
-  "current_rotation_id": "rot_pk_rice_wheat",
-  "priorities": {"w_water": 0.25, "w_soil": 0.25, "w_income": 0.25, "w_resilience": 0.25},
-  "scenario": {"rain_multiplier": 1.0, "temp_delta_c": 0.0}
-}
-```
-
-- Send `current_rotation_id`, or `current_crop`. A crop is accepted only if it is in exactly one rotation of the region (for example `rice` works, `wheat` is ambiguous and returns 422).
-- The response is the normal compare response plus `location` (region, NASA grid cell, resolution note), `analysis_type` (`historical_rotation_suitability`), `warnings` and `data_retrieval` (live, cache, refreshed or stale_cache).
-- **Only POWER climate is retrieved.** SMAP, MODIS, soil and terrain are `unavailable` and listed as warnings. Not a next-season forecast.
-- Points outside the supported regions return 422. They are never assigned to a nearest field.
-- Errors: 422 invalid input or unsupported region, 429 rate limit, 503 NASA unreachable with no cache.
-- **Regions** (`data/regions.json`) are approximate rectangles. They are an assumption, not official borders.
-- **Cache** (`data/cache/power/`, git-ignored): one file per 0.5 degree grid cell, so nearby points share one NASA request. History is never refetched. After `POWER_HISTORY_TTL_HOURS` (default 24) only the last 30 days onward are refreshed. If a refresh fails, stale cached data is used and flagged. One lock per cell prevents duplicate concurrent fetches.
-- **Rate limit:** `LOCATION_RATE_LIMIT_PER_MINUTE` (default 10 per client, in memory, single process).
-- **Frontend:** on the map, use device GPS, search, or click to drop a pin, then press "Analyze this location" (`/location` page). Needs `VITE_USE_MOCK=false`.
-
-## 9. Installation and Running
-
-Requires Python 3 (tested with 3.14) and Node.js.
+## 🚀 Quick start
 
 ```bash
-git clone https://github.com/DEVCOPS-8997/field-triage.git
-cd field-triage
-git checkout feat/m2-backend-integration
-```
-
-**Backend**
-
-```bash
-pip install -r backend/requirements.txt
-cp .env.example .env          # edit DATA_MODE if needed
+# 1️⃣  Backend
 cd backend
+python -m venv .venv && .venv/Scripts/activate      # macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
 python -m uvicorn app.main:app --port 8000
-```
 
-**Data mode** (in `.env`): `DATA_MODE=demo` for synthetic data, or `DATA_MODE=processed` for real data (F01 only).
-
-**Frontend** (new terminal)
-
-```bash
+# 2️⃣  Frontend (new terminal)
 cd frontend
 npm install
-cp .env.example .env.local     # set VITE_USE_MOCK=false to use the backend
-npm run dev                    # http://localhost:5173
+npm run dev                                         # → http://localhost:5173
 ```
 
-The `.env.example` also lists optional NASA/Earth Engine credentials. These are only for running the M1 pipeline, not the app.
+<details>
+<summary>⚙️ Configuration and database</summary>
 
-## 10. Testing and Current Limitations
+<br/>
+
+- `frontend/.env.local`: `VITE_USE_MOCK=false`, `VITE_API_URL=http://localhost:8000`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (publishable key only; the data is protected by Row-Level Security).
+- Database: run [`supabase/migrations/0001_user_fields.sql`](supabase/migrations/0001_user_fields.sql) in the Supabase SQL editor (see [`supabase/README.md`](supabase/README.md)).
+- Refresh market data: `python backend/scripts/build_market_data.py`.
+
+</details>
 
 ```bash
-cd backend && python -m pytest -q        # backend tests
-python data/validate_data.py             # dataset validation (from repo root)
-cd frontend && npm run build             # frontend production build
+# ✅ Checks
+cd backend && python -m pytest -q        # 78 passed
+python data/validate_data.py             # ALL CHECKS PASSED
+cd frontend && npm run build             # type-check + production build
 ```
 
-**Last verified results:** 47 backend tests passed (NASA calls are mocked in `tests/test_location.py`), dataset validation passed (8 fields, 10 crops, 10 rotations, 15 sources), frontend build succeeded. The API and frontend were also checked together against F01 in `processed` mode.
+## 🗺️ Coverage today
 
-**Known limitations**
-- Only F01 has real NASA data among the pilot fields. F02–F08 are demo only.
-- Live GPS analysis uses NASA POWER only. SMAP and MODIS retrieval for arbitrary points is not implemented (needs Google Earth Engine credentials and scripts; `earthengine-api` is not installed here).
-- Region boundaries are approximate rectangles. Only two regions have crop calendars.
-- No soil or terrain observations yet.
-- Scoring weights and thresholds are unvalidated assumptions.
-- F01 rainfall statistics come directly from NASA POWER and look high (about 1,550 mm per year). They have not been cross-checked.
-- Field boundaries are demo polygons.
-- The frontend has no automated tests.
+| Region | Rotations |
+|---|---|
+| 🇵🇰 **Punjab, Pakistan** | Cotton–Wheat · Rice–Wheat · Sorghum–Chickpea 💧 · Sorghum–Berseem 🪱 · Spring Maize–Wheat 💰 |
+| 🇺🇸 **US Midwest** | Corn–Soy · Wheat–Sorghum · Sorghum–Soy 💧 · Corn–Soy + Rye cover 🪱 · Corn–Soy–Wheat 💰 |
 
-## Project Structure
+<details>
+<summary>⚠️ Honest limitations</summary>
 
-```
-backend/      FastAPI app and tests
-frontend/     React app
-pipeline/     M1 NASA extraction and validation scripts
-data/         JSON data, demo profiles, raw and processed NASA data
-.env.example  Environment template
-```
+<br/>
+
+- The NASA POWER climate cell is about 50 km wide, not a field sensor.
+- SMAP and MODIS are used for the pilot field only; live points use POWER root-zone wetness.
+- There are two regions, defined as approximate rectangles. The parameters are literature-based but not yet field-validated, so confidence is capped at MEDIUM.
+- FAOSTAT prices are national averages, and some Pakistani crops have no recent price. When that happens, income is shown as "not compared".
+
+</details>
+
+## 🛣️ Roadmap
+
+- [x] Live NASA POWER analysis for any point in a supported region
+- [x] FAO-56 water balance, SoilGrids soil, Copernicus slope
+- [x] Accounts, field drawing, and per-field sales estimates
+- [ ] SMAP & MODIS for any point
+- [ ] More regions and crop calendars
+- [ ] Urdu and other local languages
+- [ ] Validation with local agronomists
+
+## 🤝 Acknowledgements
+
+- 🛰️ **NASA** POWER (LaRC), MERRA-2 (GMAO), CERES, SMAP (NSIDC), MODIS (LP DAAC)
+- 🇪🇺 **ESA / Copernicus** DEM · 🌍 **ISRIC** SoilGrids · 🌾 **FAO** FAOSTAT & FAO-56 · 🇺🇸 **USDA-NRCS**
+- 🗺️ OpenStreetMap contributors · Esri basemaps
+
+<sub>🤖 <b>AI disclosure (NASA Space Apps 2026 rules):</b> parts of this code and documentation were drafted with <b>Claude Code</b> (Anthropic's Claude) and reviewed and tested by the team. The idea, the data choices and the science are the team's own. The app uses no AI at runtime. Details are in <a href="docs/PROJECT_DOCUMENTATION.md#16-use-of-super-intelligence-ai-disclosure">§16 of the documentation</a>.</sub>
+
+<div align="center">
+
+<img src="https://capsule-render.vercel.app/api?type=waving&height=120&color=0:4ade80,55:15803d,100:052e16&section=footer" alt="" width="100%"/>
+
+**Made with 💚 for farmers · NASA Space Apps Challenge 2026**
+
+</div>

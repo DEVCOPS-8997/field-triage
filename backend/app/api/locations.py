@@ -29,8 +29,7 @@ regions_router = APIRouter(tags=["locations"])
 RESOLUTION_NOTE = (
     "NASA POWER climate represents a roughly 0.5-degree grid cell (MERRA-2 meteorology, CERES radiation). "
     "SoilGrids is a modelled 250 m estimate and Copernicus DEM is a 30 m surface model. These are grid "
-    "estimates, not field sensor or laboratory measurements; the climate cell is not this exact field. "
-    "SMAP and MODIS are not retrieved by this analysis."
+    "estimates, not field sensor or laboratory measurements; the climate cell is not this exact field."
 )
 ANALYSIS_TYPE = "historical_rotation_suitability"
 
@@ -103,6 +102,10 @@ def compare_location(
         priorities=payload.priorities,
         scenario=payload.scenario,
         requested_rotation_ids=payload.rotation_ids,
+        market_crops=catalog.market_crops(inp.region.get("country_iso3")),
+    )
+    country_name = (
+        ((catalog.market or {}).get("countries") or {}).get(inp.region.get("country_iso3") or "", {}).get("name")
     )
     base = build_compare_response(
         engine_result=engine_result,
@@ -112,22 +115,30 @@ def compare_location(
         parameters=catalog.parameters,
         nasa_metadata_by_id=catalog.nasa_metadata_by_id,
         scenario=payload.scenario,
+        crops_by_id=catalog.crops_by_id,
+        market=catalog.market,
+        market_crops=catalog.market_crops(inp.region.get("country_iso3")),
+        country_name=country_name,
+        region_name=inp.region["name"],
     )
+    # Only report sources this analysis actually tried. SMAP / MODIS are not fetched for GPS points.
+    for key in ("smap", "modis"):
+        if base.data_quality.get(key) == "unavailable":
+            base.data_quality.pop(key, None)
+    if base.income_status and base.income_status.get("scored"):
+        base.data_quality["faostat"] = "observed"
 
     q = inp.profile.data_quality
     clim = inp.profile.climatology
     warnings = [
-        f"Whole-rotation suitability from historical climate (about {inp.profile.n_years} complete years). "
-        "This is not a forecast for the coming season.",
-        "Irrigation and current rotation are farmer-reported and unverified.",
+        f"Scores replay the last {inp.profile.n_years} years of NASA weather for this spot. "
+        "They show how each rotation would have done, not a forecast for next season.",
+        "Your irrigation and current rotation come from the form and have not been checked.",
     ]
-    for key, label in (("smap", "SMAP soil moisture"), ("modis", "MODIS vegetation")):
-        if q.get(key) == "unavailable":
-            warnings.append(f"{label} not retrieved by this analysis; it is not used in the scores.")
-    for key, label in (("soil", "SoilGrids soil properties"), ("terrain", "Copernicus terrain")):
+    for key, label in (("soil", "SoilGrids soil data"), ("terrain", "Copernicus elevation data")):
         if q.get(key) == "unavailable":
             reason = inp.location_data[key].get("reason", "no valid observations")
-            warnings.append(f"{label} unavailable ({reason}); it is not used in the scores.")
+            warnings.append(f"{label} could not be loaded ({reason}), so it is left out of the scores.")
     soil_note = inp.location_data["soil"].get("sample_note")
     if soil_note and soil_note != "exact point":
         warnings.append(f"SoilGrids: {soil_note}.")

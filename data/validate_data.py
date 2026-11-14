@@ -13,11 +13,14 @@ for c in crops:
         errors.append(f"{c['crop_id']} has no references")
     if c["heat_threshold_c"] not in params["heat_buckets_c"]:
         errors.append(f"{c['crop_id']} heat threshold not in buckets")
-    for k in ["drought_tolerance", "waterlogging_tolerance", "market_score"]:
+    for k in ["drought_tolerance", "waterlogging_tolerance"]:
         if not 1 <= c[k] <= 5:
             errors.append(f"{c['crop_id']} {k} out of range")
-    if not -1 <= c["om_effect"] <= 2:
-        errors.append(f"{c['crop_id']} om_effect out of range")
+    n = c.get("n_fix_kg_ha", 0)
+    if not 0 <= n <= 300:
+        errors.append(f"{c['crop_id']} n_fix_kg_ha out of range")
+    if n > 0 and not c.get("n_fix_sources"):
+        errors.append(f"{c['crop_id']} n_fix_kg_ha has no source")
 
 for r in rots:
     for cid in r["sequence"] + ([r["cover_crop"]] if r["cover_crop"] else []):

@@ -268,17 +268,25 @@ export default function Methodology() {
 
             <H3>Soil</H3>
             <P>
-              Soil health (organic-matter effect and nitrogen fixation), erosion risk (bare-soil time, slope and heavy
-              rain) and pest break (whether consecutive crops belong to different pest families).
+              Soil health follows the USDA NRCS soil health principles: months with a living crop in the field (from the
+              crop calendars) and net nitrogen left by legumes (from cited field studies, for example 33 to 66 kg/ha for
+              berseem). Erosion risk uses bare-soil time, Copernicus DEM slope and NASA POWER heavy-rain days. Pest break
+              checks whether consecutive crops belong to different plant families (NRCS Conservation Crop Rotation, Code 328).
             </P>
+            <Formula>soil_health = 100 × (0.5 × living-root share + 0.5 × clip(legume N ÷ 100 kg/ha, 0, 1))</Formula>
             <Formula>soil = 0.5 × soil_health + 0.3 × erosion + 0.2 × pest_break</Formula>
 
             <H3>Income</H3>
-            <P>The crops&apos; market scores, scaled by the field&apos;s market access.</P>
-            <Formula>income = 20 × mean(market_score) × market_access ÷ 5</Formula>
+            <P>
+              Expected crop sales per hectare per year: the country&apos;s average yield and farm-gate price from FAOSTAT
+              (the latest 3 reported years, never older than 5 years), counting only the seasons in which the crop was
+              viable at this location, divided by the rotation length in years. The best option scores 100. If any option
+              lacks current FAOSTAT data, income is not scored for any of them and its weight is shared over the other three.
+            </P>
+            <Formula>value = Σ(yield × price × viable share) ÷ cycle years;  income = 100 × value ÷ best value</Formula>
 
             <H3>Overall score</H3>
-            <P>A weighted sum using your four priority weights, which always add up to 1.00.</P>
+            <P>A weighted sum using your priority weights, which always add up to 1.00.</P>
             <Formula>
               overall = w_water × water + w_soil × soil + w_income × income + w_resilience × resilience
             </Formula>

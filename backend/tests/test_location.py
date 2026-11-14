@@ -121,8 +121,14 @@ def test_success_schema_and_engine(client, fake):
     assert d["analysis_type"] == "historical_rotation_suitability"
     assert d["data_mode"] == "observed"
     assert d["data_quality"]["power"] == "observed"
-    for k in ("smap", "modis", "soil", "terrain"):
+    # Sources the GPS pipeline never fetches are not listed at all; attempted ones report their status
+    assert "smap" not in d["data_quality"] and "modis" not in d["data_quality"]
+    for k in ("soil", "terrain"):
         assert d["data_quality"][k] == "unavailable"
+    assert d["income_status"] is not None and "scored" in d["income_status"]
+    for r in d["rotations"]:
+        assert all(i["title"] and i["detail"] for i in r["insights"])
+        assert all(e["value"] is not None for e in r["evidence"])
     assert len(d["rotations"]) >= 3 and sorted(r["rank"] for r in d["rotations"]) == list(
         range(1, len(d["rotations"]) + 1)
     )

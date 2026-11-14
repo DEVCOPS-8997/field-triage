@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import crops, health, locations, meta, rotations
+from app.api import crops, geocode, health, locations, meta, rotations
 from app.config import Settings, get_settings
 from app.utils.validation import (
     DatasetIntegrityError,
@@ -84,6 +84,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(meta.router, prefix=api_prefix)
     application.include_router(locations.router, prefix=api_prefix)
     application.include_router(locations.regions_router, prefix=api_prefix)
+    application.include_router(geocode.router, prefix=api_prefix)
 
     return application
 

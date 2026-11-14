@@ -57,6 +57,13 @@ class DomainCatalog:
     parameters: dict[str, Any]
     nasa_metadata: list[dict[str, Any]]
     nasa_metadata_by_id: dict[str, dict[str, Any]]
+    # FAOSTAT national yields and producer prices (`data/market_faostat.json`); None if not built.
+    market: dict[str, Any] | None = None
+
+    def market_crops(self, country_iso3: str | None) -> dict[str, Any] | None:
+        if not self.market or not country_iso3:
+            return None
+        return ((self.market.get("countries") or {}).get(country_iso3) or {}).get("crops")
 
 
 _CATALOG_CACHE: dict[Path, DomainCatalog] = {}
@@ -179,6 +186,11 @@ class DataLoader:
             parameters=raw_parameters,
             nasa_metadata=raw_metadata,
             nasa_metadata_by_id=metadata_by_id,
+            market=(
+                _read_json_file(resolved_dir / "market_faostat.json")
+                if (resolved_dir / "market_faostat.json").is_file()
+                else None
+            ),
         )
         _CATALOG_CACHE[resolved_dir] = catalog
         return catalog

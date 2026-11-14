@@ -68,9 +68,14 @@ export default function ScoreRadar({ rotations, className }: ScoreRadarProps) {
     [rotations],
   )
 
+  // Only axes every rotation has a score for (income is absent when FAOSTAT data is missing).
+  const comps = useMemo(
+    () => SCORE_COMPONENTS.filter((c) => rotations.length > 0 && rotations.every((r) => typeof r.scores?.[c.key] === 'number')),
+    [rotations],
+  )
   const data = useMemo(
     () =>
-      SCORE_COMPONENTS.map((c) => {
+      comps.map((c) => {
         const row: Record<string, string | number | null> = { axis: c.label }
         for (const r of rotations) {
           const v = r.scores?.[c.key]
@@ -78,12 +83,12 @@ export default function ScoreRadar({ rotations, className }: ScoreRadarProps) {
         }
         return row
       }),
-    [rotations],
+    [rotations, comps],
   )
 
   const summary = rotations
     .map((r) => {
-      const parts = SCORE_COMPONENTS.map((c) => {
+      const parts = comps.map((c) => {
         const v = r.scores?.[c.key]
         return `${c.label.toLowerCase()} ${typeof v === 'number' ? Math.round(v) : 'unavailable'}`
       })

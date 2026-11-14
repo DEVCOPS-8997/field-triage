@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Circle,
@@ -157,9 +157,20 @@ interface Props {
   onSelect: (id: string) => void
   /** Optional: shows a Skeleton overlay while the field list loads. */
   isLoading?: boolean
+  /** Card shown for the selected field (defaults to the demo FieldInfoCard). */
+  selectedCard?: (f: FieldInfo) => ReactNode
+  /** Footnote under the map; null hides it. */
+  note?: string | null
 }
 
-export default function FieldMap({ fields, selectedId, onSelect, isLoading = false }: Props) {
+export default function FieldMap({
+  fields,
+  selectedId,
+  onSelect,
+  isLoading = false,
+  selectedCard,
+  note = 'Field boundaries are hand-drawn demo polygons, not surveyed parcels.',
+}: Props) {
   const navigate = useNavigate()
   const mapStyle = useMapStyle((s) => s.mapStyle)
   const setMapStyle = useMapStyle((s) => s.setMapStyle)
@@ -545,15 +556,15 @@ export default function FieldMap({ fields, selectedId, onSelect, isLoading = fal
       <div className="pointer-events-none absolute inset-x-4 bottom-4 z-[1000] flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="pointer-events-auto flex min-w-0 flex-col gap-2">
           {pin && <SearchPinCard pin={pin} fields={fields} onSelectField={goToField} onClose={clearPin} onAnalyze={() => navigate(`/location?lat=${pin.lat.toFixed(5)}&lon=${pin.lon.toFixed(5)}`)} />}
-          {selectedField && !pin && <FieldInfoCard field={selectedField} />}
-          <p className="glass-strong m-0 max-w-[360px] items-start gap-2 data-[pinned=true]:max-sm:hidden flex rounded-[var(--radius-control)] p-2 text-label font-semibold text-fg"
+          {selectedField && !pin && (selectedCard ? selectedCard(selectedField) : <FieldInfoCard field={selectedField} />)}
+          {note && <p className="glass-strong m-0 max-w-[360px] items-start gap-2 data-[pinned=true]:max-sm:hidden flex rounded-[var(--radius-control)] p-2 text-label font-semibold text-fg"
             data-pinned={pin ? 'true' : undefined}
           >
             <span className="flex h-[20px] shrink-0 items-center pl-1">
               <Info size={16} strokeWidth={1.75} aria-hidden className="text-derived" />
             </span>
-            <span className="pr-1">Field boundaries are hand-drawn demo polygons, not surveyed parcels.</span>
-          </p>
+            <span className="pr-1">{note}</span>
+          </p>}
         </div>
         <p
           data-component="MapAttribution"

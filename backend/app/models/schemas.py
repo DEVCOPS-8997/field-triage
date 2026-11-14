@@ -127,6 +127,20 @@ class EvidenceItem(_ContractBaseModel):
     unit: str
     source: str
     interpretation: str
+    label: Optional[str] = None  # plain-language name of the measurement
+    group: Optional[str] = None  # climate | water | soil | terrain | crop | market | farm
+    source_url: Optional[str] = None
+
+
+class Insight(_ContractBaseModel):
+    """One plain-language finding with the authority that supports it."""
+
+    kind: Literal["benefit", "risk", "gap", "check"]
+    topic: str  # water | heat | frost | nitrogen | cover | pest | income | soil | terrain | climate | data | farm
+    title: str
+    detail: str
+    source: Optional[str] = None
+    source_url: Optional[str] = None
 
 
 class RotationScore(_ContractBaseModel):
@@ -146,6 +160,8 @@ class RotationScore(_ContractBaseModel):
     data_gaps: list[str]
     needs_local_review: list[str]
     evidence: list[EvidenceItem]
+    insights: list[Insight] = Field(default_factory=list)
+    annual_value_usd_ha: Optional[float] = None
 
 
 class CompareResponse(_ContractBaseModel):
@@ -155,6 +171,8 @@ class CompareResponse(_ContractBaseModel):
     data_mode: Literal["observed", "demo"]
     data_quality: dict[str, Quality]
     disclaimer: str
+    # {"scored": bool, "note": str, "source": str, "source_url": str, "missing": [crop names]}
+    income_status: Optional[dict] = None
 
 
 # Additional auxiliary endpoint response schemas (non-conflicting with Section 6 frozen contracts)
@@ -212,6 +230,7 @@ class RegionInfo(_ContractBaseModel):
     name: str
     bbox: dict[str, float]
     note: str = ""
+    country_iso3: Optional[str] = None
 
 
 class LocationCompareResponse(CompareResponse):

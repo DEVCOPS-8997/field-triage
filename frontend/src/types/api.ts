@@ -77,6 +77,31 @@ export interface EvidenceItem {
   unit: string
   source: string
   interpretation: string
+  label?: string | null
+  group?: EvidenceGroup | null
+  source_url?: string | null
+}
+
+export type EvidenceGroup = 'climate' | 'water' | 'soil' | 'terrain' | 'crop' | 'market' | 'farm'
+export type InsightKind = 'benefit' | 'risk' | 'gap' | 'check'
+
+/** One plain-language finding with the authority behind it. */
+export interface Insight {
+  kind: InsightKind
+  topic: string
+  title: string
+  detail: string
+  source?: string | null
+  source_url?: string | null
+}
+
+export interface IncomeStatus {
+  scored: boolean
+  note: string
+  missing: string[]
+  source: string
+  source_url?: string | null
+  retrieved_at?: string | null
 }
 
 export interface RotationScore {
@@ -84,7 +109,7 @@ export interface RotationScore {
   label: string
   strategy_type: string
   is_existing: boolean
-  scores: Record<string, number> // water, soil, resilience, income (0 to 100)
+  scores: Record<string, number> // water, soil, resilience always; income only when FAOSTAT data exists for every option
   overall: number
   overall_low: number
   overall_high: number
@@ -96,6 +121,8 @@ export interface RotationScore {
   data_gaps: string[]
   needs_local_review: string[]
   evidence: EvidenceItem[]
+  insights?: Insight[]
+  annual_value_usd_ha?: number | null
 }
 
 export interface CompareResponse {
@@ -105,6 +132,7 @@ export interface CompareResponse {
   data_mode: DataMode
   data_quality: Record<string, Quality>
   disclaimer: string
+  income_status?: IncomeStatus | null
 }
 
 // ---- Dynamic GPS-location analysis (POST /api/v1/locations/compare) ----
@@ -125,6 +153,21 @@ export interface LocationInfo {
   current_rotation_id: string
   nasa_grid_cell: Record<string, number>
   data_resolution_note: string
+  soil_texture_class?: string | null // USDA class derived from SoilGrids sand/clay
+}
+
+export type NowStatusValue = 'FAVORABLE' | 'WATCH' | 'STRESSED'
+
+export interface GeoProvider {
+  status: 'available' | 'unavailable'
+  provider: string
+  product?: string
+  spatial_resolution?: string
+  quality?: string
+  sample_note?: string
+  reason?: string
+  local_relief_m?: number
+  retrieved_at?: string
 }
 
 export interface LocationCompareResponse extends CompareResponse {
@@ -137,7 +180,12 @@ export interface LocationCompareResponse extends CompareResponse {
     period_start: string
     period_end: string
     stale: boolean
+    power_parameters?: string[]
+    geospatial?: { soil?: GeoProvider; terrain?: GeoProvider }
   }
+  profile: FieldProfile // live profile: monthly climate, climatology, soil, terrain, now
+  now_status: NowStatusValue
+  now_reasons: string[]
 }
 
 export interface LocationRegionResponse {

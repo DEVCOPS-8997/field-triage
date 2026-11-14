@@ -1,0 +1,267 @@
+{
+  "source": "FAOSTAT, Food and Agriculture Organization of the United Nations",
+  "datasets": {
+    "yield": "Crops and livestock products (QCL), element 'Yield' (kg/ha), national average",
+    "price": "Producer Prices (PP), element 'Producer Price (USD/tonne)'"
+  },
+  "url": "https://www.fao.org/faostat/en/#data",
+  "retrieved_at": "2026-11-15",
+  "method": "Mean of the latest 3 reported years; values older than 5 years are not used.",
+  "countries": {
+    "PAK": {
+      "name": "Pakistan",
+      "crops": {
+        "wheat": {
+          "item": "Wheat",
+          "item_code": "15",
+          "yield_kg_ha": 3101.8,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": 359.8,
+          "price_years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "maize": {
+          "item": "Maize (corn)",
+          "item_code": "56",
+          "yield_kg_ha": 6151.8,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": 302.9,
+          "price_years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "rice": {
+          "item": "Rice (paddy)",
+          "item_code": "27",
+          "yield_kg_ha": 3832.4,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": 810.2,
+          "price_years": [
+            2021,
+            2022,
+            2024
+          ]
+        },
+        "cotton": {
+          "item": "Seed cotton, unginned",
+          "item_code": "328",
+          "yield_kg_ha": 1638.5,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": null,
+          "price_years": [
+            2014,
+            2015,
+            2016
+          ],
+          "missing": "price latest value is from 2016 (older than 5 years)"
+        },
+        "soybean": {
+          "item": "Soya beans",
+          "item_code": "236",
+          "yield_kg_ha": 626.4,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": null,
+          "price_years": [
+            2008,
+            2009,
+            2010
+          ],
+          "missing": "price latest value is from 2010 (older than 5 years)"
+        },
+        "chickpea": {
+          "item": "Chick peas, dry",
+          "item_code": "191",
+          "yield_kg_ha": 306.1,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": null,
+          "price_years": [],
+          "missing": "price not reported"
+        },
+        "sorghum": {
+          "item": "Sorghum",
+          "item_code": "83",
+          "yield_kg_ha": 824.7,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": null,
+          "price_years": [
+            2008,
+            2009,
+            2010
+          ],
+          "missing": "price latest value is from 2010 (older than 5 years)"
+        },
+        "mungbean": {
+          "item": "Mungbean (not reported separately by FAOSTAT)",
+          "yield_kg_ha": null,
+          "price_usd_t": null,
+          "missing": "FAOSTAT has no separate series for this crop"
+        },
+        "berseem": {
+          "item": "Berseem clover fodder (no FAOSTAT price series)",
+          "yield_kg_ha": null,
+          "price_usd_t": null,
+          "missing": "FAOSTAT has no separate series for this crop"
+        }
+      }
+    },
+    "USA": {
+      "name": "United States of America",
+      "crops": {
+        "wheat": {
+          "item": "Wheat",
+          "item_code": "15",
+          "yield_kg_ha": 3280.7,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": 263.4,
+          "price_years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "maize": {
+          "item": "Maize (corn)",
+          "item_code": "56",
+          "yield_kg_ha": 11091.2,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": 204.7,
+          "price_years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "rice": {
+          "item": "Rice (paddy)",
+          "item_code": "27",
+          "yield_kg_ha": 8511.6,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": 382.9,
+          "price_years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "cotton": {
+          "item": "Seed cotton, unginned",
+          "item_code": "328",
+          "yield_kg_ha": 2831.2,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": null,
+          "price_years": [],
+          "missing": "price not reported"
+        },
+        "soybean": {
+          "item": "Soya beans",
+          "item_code": "236",
+          "yield_kg_ha": 3382.4,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": 450.7,
+          "price_years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "chickpea": {
+          "item": "Chick peas, dry",
+          "item_code": "191",
+          "yield_kg_ha": 1318.3,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": 751.8,
+          "price_years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "sorghum": {
+          "item": "Sorghum",
+          "item_code": "83",
+          "yield_kg_ha": 3230.4,
+          "yield_years": [
+            2022,
+            2023,
+            2024
+          ],
+          "price_usd_t": 211.0,
+          "price_years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "mungbean": {
+          "item": "Mungbean (not reported separately by FAOSTAT)",
+          "yield_kg_ha": null,
+          "price_usd_t": null,
+          "missing": "FAOSTAT has no separate series for this crop"
+        },
+        "berseem": {
+          "item": "Berseem clover fodder (no FAOSTAT price series)",
+          "yield_kg_ha": null,
+          "price_usd_t": null,
+          "missing": "FAOSTAT has no separate series for this crop"
+        }
+      }
+    }
+  }
+}

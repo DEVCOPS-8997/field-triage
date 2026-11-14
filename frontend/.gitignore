@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+# Supabase URL + publishable (public) key: committed on purpose; protected by Row Level Security.
+!.env.local
 
 # Editor directories and files
 .vscode/*

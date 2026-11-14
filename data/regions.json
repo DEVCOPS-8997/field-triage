@@ -1,12 +1,14 @@
 [
   {
     "region_id": "pk_punjab",
+    "country_iso3": "PAK",
     "name": "Punjab, Pakistan (approximate)",
     "bbox": {"lat_min": 28.0, "lat_max": 34.0, "lon_min": 69.5, "lon_max": 75.5},
     "note": "Approximate rectangle used only to decide whether a GPS point is inside the area covered by this region's crop calendars. It is an assumption, not an official boundary, and may include nearby non-Punjab land. Farmers near the edge should confirm the crop calendar applies locally."
   },
   {
     "region_id": "us_midwest",
+    "country_iso3": "USA",
     "name": "US Midwest (approximate)",
     "bbox": {"lat_min": 36.5, "lat_max": 49.5, "lon_min": -104.0, "lon_max": -80.5},
     "note": "Approximate rectangle used only to decide whether a GPS point is inside the area covered by this region's crop calendars. It is an assumption, not an official boundary."

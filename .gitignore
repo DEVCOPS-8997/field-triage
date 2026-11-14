@@ -13,20 +13,19 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 
-# Environment variables (never commit credentials)
+# Private credentials only (NASA Earthdata password, Earth Engine project).
+# The NASA data (data/raw, data/cache) and the Supabase URL + publishable key
+# (frontend/.env.local) are intentionally committed.
 .env
 backend/.env
 frontend/.env
-frontend/.env.local
-
-# Raw NASA pipeline outputs (large parquet/granule caches)
-data/raw/
 
 # Frontend build & dependencies
 frontend/node_modules/
 frontend/dist/
 
-# OS / IDE artifacts
+# OS / IDE / tool artifacts
 .DS_Store
 Thumbs.db
-data/cache/
+.playwright-mcp/
+.tmp/
