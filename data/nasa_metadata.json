@@ -1,0 +1,17 @@
+[
+{"id":"power","name":"NASA POWER","role":"core","variables":["PRECTOTCORR","T2M","T2M_MAX","T2M_MIN"],"resolution":"0.5 deg","limitation":"Coarse grid, model assisted rainfall"},
+{"id":"smap_l4","name":"SMAP L4 SPL4SMGP v007","role":"core","variables":["sm_surface","sm_rootzone"],"resolution":"9 km","limitation":"Data from 2015, one cell covers many fields"},
+{"id":"modis_mod13q1","name":"MODIS MOD13Q1 v061","role":"core","variables":["NDVI","EVI"],"resolution":"250 m","limitation":"16 day composite, mixed pixels on small fields"},
+{"id":"imerg","name":"GPM IMERG V07","role":"stretch","variables":["precipitation"],"resolution":"0.1 deg","limitation":"Satellite rain estimate, check against gauges"},
+{"id":"srtm","name":"SRTM","role":"stretch","variables":["elevation_m","slope_deg"],"resolution":"30 m","limitation":"Static, older terrain"},
+{"id":"ecostress","name":"ECOSTRESS","role":"context","variables":["LST","ET"],"resolution":"70 m","limitation":"Irregular revisit, cloud gaps"},
+{"id":"nldas_gldas","name":"NLDAS / GLDAS","role":"context","variables":["soil moisture","ET proxy"],"resolution":"0.125 to 0.25 deg","limitation":"Model assimilation, not direct observation"},
+{"id":"cdl","name":"USDA Cropland Data Layer","role":"validation","variables":["crop type"],"resolution":"30 m","limitation":"US only, used to check existing Midwest rotation"},
+{"id":"nass_quickstats","name":"USDA NASS QuickStats","role":"validation","variables":["yield","acreage"],"resolution":"county","limitation":"US only, county average"},
+{"id":"ssurgo_wss","name":"USDA SSURGO / Web Soil Survey","role":"validation","variables":["texture","organic matter","drainage"],"resolution":"field scale","limitation":"US only, SoilGrids used elsewhere"},
+{"id":"prism","name":"PRISM Climate","role":"validation","variables":["precipitation","temperature"],"resolution":"4 km","limitation":"US only"},
+{"id":"openet","name":"OpenET","role":"validation","variables":["evapotranspiration"],"resolution":"30 m","limitation":"Western US only"},
+{"id":"gaez","name":"FAO GAEZ v4","role":"validation","variables":["crop suitability","yield potential"],"resolution":"9 km","limitation":"Global baseline, not field specific"},
+{"id":"ams_market_news","name":"USDA AMS Market News","role":"market","variables":["commodity price"],"resolution":"regional","limitation":"US prices, Punjab market_score is expert estimate"},
+{"id":"soilgrids","name":"SoilGrids (non-NASA)","role":"core","variables":["clay","sand","soc","phh2o"],"resolution":"250 m","limitation":"Modelled soil, not lab measured"}
+]
