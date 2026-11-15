@@ -1,4 +1,4 @@
--- Field Shift Advisor: equipment, labour or commitments the farmer does NOT have, per field.
+-- Field Triage: equipment, labour or commitments the farmer does NOT have, per field.
 -- Run once after 0001 in the Supabase dashboard (SQL Editor) or with `supabase db push`.
 --
 -- * Values match the backend FarmConstraints.unavailable_equipment ids (frontend EquipmentId).

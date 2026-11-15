@@ -21,7 +21,7 @@ router = APIRouter(tags=["geocode"])
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 # Nominatim's usage policy asks for an identifying User-Agent and at most 1 request per second.
-NOMINATIM_UA = "FieldShiftAdvisor/1.0 (crop-rotation decision-support tool)"
+NOMINATIM_UA = "FieldTriage/1.0 (crop-rotation decision-support tool)"
 
 _lock = threading.Lock()
 _last = [0.0]

@@ -2,7 +2,7 @@
 
 from app.utils.validation import (
     DatasetIntegrityError,
-    FieldShiftError,
+    FieldTriageError,
     ProfileUnavailableError,
     RequestValidationError,
     UnknownFieldError,
@@ -17,7 +17,7 @@ from app.utils.validation import (
 
 __all__ = [
     "DatasetIntegrityError",
-    "FieldShiftError",
+    "FieldTriageError",
     "ProfileUnavailableError",
     "RequestValidationError",
     "UnknownFieldError",

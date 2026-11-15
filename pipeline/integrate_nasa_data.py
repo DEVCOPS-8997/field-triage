@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 # ==========================================
-# FIELD SHIFT - NASA DATA INTEGRATION
+# FIELD TRIAGE - NASA DATA INTEGRATION
 # Field: F01
 # Sources: POWER + SMAP + MODIS
 # ==========================================

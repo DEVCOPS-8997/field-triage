@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import date, datetime, timedelta, timezone
 
 # ==========================================
-# FIELD SHIFT - NASA SMAP EXTRACTION
+# FIELD TRIAGE - NASA SMAP EXTRACTION
 # ==========================================
 
 PROJECT_ID = "field-shift-nasa"

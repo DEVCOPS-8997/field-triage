@@ -1,32 +1,30 @@
-# React + TypeScript + Vite
+# Field Triage: frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React web app for **Field Triage**, the crop-rotation decision-support tool built by team Krypton Knights for the NASA Space Apps 2026 **Field Shift** challenge. See the [project README](../README.md) and [DOCUMENTATION.md](../DOCUMENTATION.md) for the full picture.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+React 19 · TypeScript 7 · Vite 8 · Tailwind CSS 4 · React Router 7 · TanStack Query 5 · Zustand · Leaflet / react-leaflet · Recharts · lucide-react · Supabase JS · oxlint. English and Urdu (right-to-left) via `src/lib/i18n`.
 
-## React Compiler
+## Pages
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Route | Page |
+|---|---|
+| `/` | Overview: map search, drop a pin, saved fields for signed-in users |
+| `/location?lat&lon` | Location analysis: farm inputs, best fit, farm year, comparison, details, climate, site, data |
+| `/account` | Sign up / sign in |
+| `/my-fields`, `/my-fields/new`, `/my-fields/:id` | Saved fields and the field editor (draw polygon, rectangle or circle) |
+| `/methodology` | Formulas and sources in plain language |
+| `/fields/:fieldId` | Demo pilot fields |
 
-## Expanding the Oxlint configuration
+## Run
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+cp .env.example .env.local   # VITE_API_URL, VITE_USE_MOCK, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+npm run dev                  # http://localhost:5173 (backend on :8000)
+npm run build                # type-check + production build
+npm run lint                 # oxlint
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Set `VITE_USE_MOCK=true` to run offline on the mock responses in `public/mock/`.

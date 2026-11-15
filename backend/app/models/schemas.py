@@ -232,7 +232,7 @@ class CompareResponse(_ContractBaseModel):
 # Additional auxiliary endpoint response schemas (non-conflicting with Section 6 frozen contracts)
 class HealthResponse(_ContractBaseModel):
     status: Literal["ok"] = "ok"
-    service: str = "field-shift-advisor"
+    service: str = "field-triage"
     data_mode: Literal["observed", "demo"]
 
 

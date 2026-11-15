@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------
-   Field Shift Advisor design tokens (Phase 2 UI-SPEC, "Design Tokens").
+   Field Triage design tokens (Phase 2 UI-SPEC, "Design Tokens").
    Only these sizes and colours exist: leftover Tailwind palette or size
    classes render nothing, so they are easy to spot and grep out.
    ------------------------------------------------------------------ */

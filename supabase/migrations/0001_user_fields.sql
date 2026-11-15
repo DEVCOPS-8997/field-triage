@@ -1,4 +1,4 @@
--- Field Shift Advisor: each signed-in user's own fields.
+-- Field Triage: each signed-in user's own fields.
 -- Run once in the Supabase dashboard (SQL Editor) or with `supabase db push`.
 --
 -- * Accounts come from Supabase Auth (auth.users); the display name is user metadata `full_name`.

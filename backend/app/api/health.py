@@ -14,6 +14,6 @@ def get_health() -> HealthResponse:
     """Service liveness and active public data_mode check."""
     return HealthResponse(
         status="ok",
-        service="field-shift-advisor",
+        service="field-triage",
         data_mode="observed",  # every score is computed from live retrieved data
     )

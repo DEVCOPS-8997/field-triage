@@ -255,7 +255,7 @@ def _build_benefits_and_risks(
     for crop in legumes:
         n = float(crop.get("n_fix_kg_ha") or 0)
         srcs = crop.get("n_fix_sources") or []
-        src = (srcs[0]["label"], srcs[0].get("url")) if srcs else ("Field Shift crop catalog (uncited estimate)", None)
+        src = (srcs[0]["label"], srcs[0].get("url")) if srcs else ("Field Triage crop catalog (uncited estimate)", None)
         if n > 0:
             bags = n / UREA_N_SHARE / UREA_BAG_KG
             rng = crop.get("n_fix_range_kg_ha")

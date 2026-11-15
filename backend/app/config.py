@@ -1,4 +1,4 @@
-"""Backend configuration and environment resolution for Field Shift Advisor."""
+"""Backend configuration and environment resolution for Field Triage."""
 
 from __future__ import annotations
 

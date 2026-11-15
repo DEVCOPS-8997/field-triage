@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from collections import Counter
 
 # ==========================================
-# FIELD SHIFT - INTEGRATED DATA VALIDATION
+# FIELD TRIAGE - INTEGRATED DATA VALIDATION
 # POWER + SMAP + MODIS
 # ==========================================
 

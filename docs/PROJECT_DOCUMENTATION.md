@@ -1,10 +1,13 @@
-# Field Shift Advisor: Project Documentation
+# Field Triage: Project Documentation
+
+> [!WARNING]
+> **Superseded.** This is an earlier snapshot, kept for reference. The current, complete documentation is **[`../DOCUMENTATION.md`](../DOCUMENTATION.md)**. Some details below are out of date: the app now covers Pakistan's four provinces (75 crops, 54 rotations; the US Midwest was removed), has 101 backend tests (not 78), adds MODIS NDVI per field, farmer limits, a farm-year view and Urdu, and the team is Krypton Knights.
 
 **NASA International Space Apps Challenge 2026**
 Repository: <https://github.com/DEVCOPS-8997/field-triage> (branch `New-integrated-good-UIUX`)
 Document date: 15 November 2026
 
-> **Decision support only.** Field Shift Advisor shows how crop rotations would have performed under 20 years of past NASA weather at a place. It is not a forecast. It does not replace a farmer's judgment, an agronomist, or a soil test.
+> **Decision support only.** Field Triage shows how crop rotations would have performed under 20 years of past NASA weather at a place. It is not a forecast. It does not replace a farmer's judgment, an agronomist, or a soil test.
 
 ---
 
@@ -85,11 +88,11 @@ Source: the official [2026 Project Submission Guide](https://www.spaceappschalle
 
 ## 2. Project name and summary (ready to paste)
 
-**Project name:** Field Shift Advisor
+**Project name:** Field Triage
 
 **High-level project summary:**
 
-> Field Shift Advisor is a web app that helps farmers compare crop rotations for their own field using NASA Earth-observation data. A farmer searches their village or drops a pin, and can draw the exact field outline. The app downloads 20 or more years of daily NASA POWER weather for that spot: rain, temperature, humidity, wind, sunlight and root-zone soil wetness. It adds soil (ISRIC SoilGrids) and slope (Copernicus DEM) data. It then replays every past season of the farmer's current rotation and at least four alternatives. Each season is checked for heat at flowering, frost, and water shortfall, using FAO crop-water science. Each rotation gets Water, Soil, Income and Resilience scores, weighted by the farmer's own priorities. For each rotation the app explains in plain language why it was suggested, its benefits and risks, what data is missing, and what to check locally. Every statement links to its source, and missing data is never shown as zero. The app helps farmers plan for hotter, more uncertain seasons, and it supports, but does not replace, their own experience and local experts.
+> Field Triage is a web app that helps farmers compare crop rotations for their own field using NASA Earth-observation data. A farmer searches their village or drops a pin, and can draw the exact field outline. The app downloads 20 or more years of daily NASA POWER weather for that spot: rain, temperature, humidity, wind, sunlight and root-zone soil wetness. It adds soil (ISRIC SoilGrids) and slope (Copernicus DEM) data. It then replays every past season of the farmer's current rotation and at least four alternatives. Each season is checked for heat at flowering, frost, and water shortfall, using FAO crop-water science. Each rotation gets Water, Soil, Income and Resilience scores, weighted by the farmer's own priorities. For each rotation the app explains in plain language why it was suggested, its benefits and risks, what data is missing, and what to check locally. Every statement links to its source, and missing data is never shown as zero. The app helps farmers plan for hotter, more uncertain seasons, and it supports, but does not replace, their own experience and local experts.
 
 ---
 
@@ -159,7 +162,7 @@ A free tool that extension workers and farmers can use to start a conversation a
 
 ## 4. How the project meets the challenge
 
-| Challenge requirement | How Field Shift Advisor meets it |
+| Challenge requirement | How Field Triage meets it |
 |---|---|
 | Combine NASA Earth observations with local soil, crop and farmer data | NASA POWER (8 parameters) plus SoilGrids soil, Copernicus DEM slope, the crop catalog and the farmer's form inputs |
 | Compare at least 3 rotation strategies, including the current one | 5 rotations per region (conventional, water-saving, soil-building, income); the current one is labelled "Your current" |
@@ -612,7 +615,7 @@ The latest POWER days are classified as **FAVORABLE**, **WATCH** or **STRESSED**
 
 ### 16.1 AI inside the product
 
-**None.** Field Shift Advisor uses no machine-learning model, chatbot or large language model at runtime:
+**None.** Field Triage uses no machine-learning model, chatbot or large language model at runtime:
 - the rotation engine is deterministic mathematics (`rotation_engine.py`, line 4: "zero LLM/AI calls");
 - the explanations are rule-based templates filled with computed numbers (`explain.py`);
 - the same input always gives the same result.
@@ -729,13 +732,13 @@ Strict limits: video of 30 seconds or less, or 7 slides or fewer, in English. A 
 |---|---|---|
 | 0:00–0:02 | Team name card | "We are team ___." |
 | 0:02–0:05 | A farm field | "Our challenge: help farmers choose crop rotations as the climate changes." |
-| 0:05–0:10 | App logo and title | "Field Shift Advisor: 20 years of NASA data for your field." |
+| 0:05–0:10 | App logo and title | "Field Triage: 20 years of NASA data for your field." |
 | 0:10–0:20 | Screen recording: search a village, draw the field, press Analyze, show the ranked rotations and a benefit with its source | "Draw your field. We replay every past season with NASA POWER weather, soil and slope, and compare your rotation with four others on water, soil, income and resilience, in plain words." |
 | 0:20–0:30 | Map zooming out across regions | "Free and open for any farmer: fewer failed seasons, healthier soil, less water." |
 
 ### Option B: 7 slides
 
-1. **Title:** Field Shift Advisor, the team name, team member names, and the challenge name.
+1. **Title:** Field Triage, the team name, team member names, and the challenge name.
 2. **Problem:** farmers face heat, erratic rain and soil loss; a rotation choice lasts years.
 3. **Solution:** screenshot of the map and field drawing; the user journey in three steps.
 4. **NASA data:** POWER parameters (rain, temperature, humidity, wind, sunlight, root-zone wetness), SMAP and MODIS in the pilot, plus Copernicus DEM (ESA) and SoilGrids.

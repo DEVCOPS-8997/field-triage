@@ -1,6 +1,6 @@
 # Field Shift: Execution Plan (10-hour build, 4 members)
 
-Working name: **Field Shift Advisor**. A rotation comparison tool driven by NASA Earth observations.
+Working name: **Field Triage**. A rotation comparison tool driven by NASA Earth observations.
 Built on the ChatGPT "Field Triage" blueprint (its module split, shared contract and mock-first idea are good). Changes below are marked **[CHANGE]**.
 
 ---

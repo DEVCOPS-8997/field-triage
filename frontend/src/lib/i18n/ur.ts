@@ -15,9 +15,9 @@ import fieldsUr from './sections/fields.ur'
 
 const ur: DeepPartial<Dictionary> = {
   common: {
-    appName: 'Field Shift',
+    appName: 'Field Triage',
     appTagline: 'زرعی مشیر',
-    appFullName: 'Field Shift زرعی مشیر',
+    appFullName: 'Field Triage زرعی مشیر',
     unavailable: 'دستیاب نہیں',
     loading: 'لوڈ ہو رہا ہے…',
     dismiss: 'بند کریں',
@@ -61,7 +61,7 @@ const ur: DeepPartial<Dictionary> = {
     saveFieldsHint: 'تاکہ اپنے کھیت محفوظ کر سکیں',
     signOut: 'سائن آؤٹ',
     skipToMain: 'مرکزی مواد پر جائیں',
-    brandHome: 'Field Shift، جائزہ',
+    brandHome: 'Field Triage، جائزہ',
     accountOf: 'اکاؤنٹ: {name}',
     createOrSignIn: 'اکاؤنٹ بنائیں یا سائن اِن کریں',
   },
@@ -238,7 +238,7 @@ const ur: DeepPartial<Dictionary> = {
       disclaimer: 'اہم وضاحت',
     },
     how: {
-      p1: 'Field Shift کسی کھیت کے لیے فصلی ترتیبوں کا موازنہ NASA کے طویل مدتی سیٹلائٹ مشاہدات سے کرتا ہے، صرف حالیہ موسم سے نہیں۔ فصلی ترتیب کئی موسموں کا فیصلہ ہے، اس لیے ہر کھیت کے لیے 10 سے 20 سال کا موسمی ریکارڈ دیکھا جاتا ہے۔',
+      p1: 'Field Triage کسی کھیت کے لیے فصلی ترتیبوں کا موازنہ NASA کے طویل مدتی سیٹلائٹ مشاہدات سے کرتا ہے، صرف حالیہ موسم سے نہیں۔ فصلی ترتیب کئی موسموں کا فیصلہ ہے، اس لیے ہر کھیت کے لیے 10 سے 20 سال کا موسمی ریکارڈ دیکھا جاتا ہے۔',
       extractTitle: 'ڈیٹا جمع کرنا۔',
       extractBody:
         'ہر کھیت کے لیے ایک بار یہ معلومات لی جاتی ہیں: NASA POWER سے روزانہ بارش اور درجۂ حرارت، SMAP L4 سے زمین کی نمی، MODIS NDVI سے ہریالی کی تاریخ، SoilGrids سے مٹی کی خصوصیات اور SRTM سے زمین کی ڈھلوان۔',

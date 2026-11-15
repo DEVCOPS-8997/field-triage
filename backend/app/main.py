@@ -1,4 +1,4 @@
-"""FastAPI application entrypoint (`app/main.py`) for Field Shift Advisor."""
+"""FastAPI application entrypoint (`app/main.py`) for Field Triage."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from app.utils.validation import (
     UnknownFieldError,
 )
 
-logger = logging.getLogger("field_shift_advisor")
+logger = logging.getLogger("field_triage")
 
 
 LOOPBACK_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
@@ -28,7 +28,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     resolved_settings = settings or get_settings()
 
     application = FastAPI(
-        title="Field Shift Advisor API",
+        title="Field Triage API",
         description=(
             "Deterministic multi-season crop-rotation decision-support engine powered by "
             "live NASA POWER, SoilGrids and Copernicus DEM data for any GPS point in a supported region."

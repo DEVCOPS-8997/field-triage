@@ -1,4 +1,4 @@
-"""Input, dataset, calendar, and regional compatibility validation for Field Shift Advisor."""
+"""Input, dataset, calendar, and regional compatibility validation for Field Triage."""
 
 from __future__ import annotations
 
@@ -10,23 +10,23 @@ from pydantic import ValidationError
 from app.models.schemas import FieldInfo, Priorities, Scenario
 
 
-class FieldShiftError(Exception):
+class FieldTriageError(Exception):
     """Base exception for deterministic backend validation and loading failures."""
 
 
-class UnknownFieldError(FieldShiftError):
+class UnknownFieldError(FieldTriageError):
     """Raised when a requested field_id does not exist in fields.json (HTTP 404)."""
 
 
-class RequestValidationError(FieldShiftError):
+class RequestValidationError(FieldTriageError):
     """Raised when request inputs or candidate selections are invalid (HTTP 422)."""
 
 
-class ProfileUnavailableError(FieldShiftError):
+class ProfileUnavailableError(FieldTriageError):
     """Raised when a required field profile is missing or unreadable (HTTP 503)."""
 
 
-class DatasetIntegrityError(FieldShiftError):
+class DatasetIntegrityError(FieldTriageError):
     """Raised when server-side domain configuration/datasets are malformed (HTTP 503)."""
 
 

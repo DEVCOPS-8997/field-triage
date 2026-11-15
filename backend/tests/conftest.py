@@ -1,4 +1,4 @@
-"""Shared deterministic pytest fixtures for Field Shift Advisor M2 backend tests.
+"""Shared deterministic pytest fixtures for Field Triage M2 backend tests.
 
 All synthetic fixtures in unit/integration tests are explicitly tagged as synthetic
 and never misrepresent synthetic values as real NASA observations.

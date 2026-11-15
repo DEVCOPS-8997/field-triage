@@ -1,1 +1,1 @@
-"""Field Shift Advisor backend package (M2)."""
+"""Field Triage backend package (M2)."""

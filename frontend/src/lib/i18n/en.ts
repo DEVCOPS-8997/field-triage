@@ -16,9 +16,9 @@ import fieldsEn from './sections/fields.en'
 
 const en = {
   common: {
-    appName: 'Field Shift',
-    appTagline: 'Advisor',
-    appFullName: 'Field Shift Advisor',
+    appName: 'Field Triage',
+    appTagline: 'Crop rotation advisor',
+    appFullName: 'Field Triage',
     unavailable: 'unavailable',
     loading: 'Loading…',
     dismiss: 'Dismiss',
@@ -62,7 +62,7 @@ const en = {
     saveFieldsHint: 'to save your fields',
     signOut: 'Sign out',
     skipToMain: 'Skip to main content',
-    brandHome: 'Field Shift Advisor, overview',
+    brandHome: 'Field Triage, overview',
     accountOf: 'Account: {name}',
     createOrSignIn: 'Create account or sign in',
   },
@@ -239,7 +239,7 @@ const en = {
       disclaimer: 'Disclaimer',
     },
     how: {
-      p1: 'Field Shift compares crop rotations for a field using long-term NASA Earth observations, not just recent weather. A rotation is a multi-season choice, so each field gets a 10 to 20 year climate baseline.',
+      p1: 'Field Triage compares crop rotations for a field using long-term NASA Earth observations, not just recent weather. A rotation is a multi-season choice, so each field gets a 10 to 20 year climate baseline.',
       extractTitle: 'Extract.',
       extractBody:
         'An offline pipeline pulls, once per field: NASA POWER daily rain and temperature, SMAP L4 soil moisture, MODIS NDVI vegetation history, SoilGrids soil properties and SRTM terrain.',

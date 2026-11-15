@@ -20,7 +20,7 @@ def test_health_docs_openapi_and_cors(demo_settings: Settings) -> None:
     client = TestClient(create_app(settings=demo_settings))
     h = client.get("/api/v1/health", headers={"Origin": "http://localhost:5173"})
     assert h.status_code == 200
-    assert h.json() == {"status": "ok", "service": "field-shift-advisor", "data_mode": "observed"}
+    assert h.json() == {"status": "ok", "service": "field-triage", "data_mode": "observed"}
     assert h.headers.get("access-control-allow-origin") == "http://localhost:5173"
     assert client.get("/docs").status_code == 200
 

@@ -1,4 +1,4 @@
-"""Pydantic contract exports for Field Shift Advisor."""
+"""Pydantic contract exports for Field Triage."""
 
 from app.models.schemas import (
     CompareRequest,

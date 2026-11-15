@@ -1,0 +1,76 @@
+{
+ "global": [
+  {
+   "id": "g1",
+   "visual": "card:title",
+   "text": "Farmers choose a crop rotation for years. But heat, erratic rain and falling water make that choice riskier every season."
+  },
+  {
+   "id": "g2",
+   "visual": "c-overview-pin",
+   "text": "Field Triage starts with your field, found on a satellite map."
+  },
+  {
+   "id": "g3",
+   "visual": "s-summary",
+   "text": "It replays twenty years of NASA POWER weather, with soil and slope, through every past season."
+  },
+  {
+   "id": "g4",
+   "visual": "s-compare",
+   "text": "Your current rotation is ranked against the best water saving, soil building and income options."
+  },
+  {
+   "id": "g5",
+   "visual": "s-details2",
+   "text": "Every result explains why, with risks and sources."
+  },
+  {
+   "id": "g6",
+   "visual": "card:end",
+   "text": "Field Triage. It supports farmers, and never replaces them."
+  }
+ ],
+ "local": [
+  {
+   "id": "l1",
+   "visual": "card:team",
+   "text": "We are Krypton Knights, solving the Field Shift challenge. Ahmed Jabbar leads the team and the NASA data. Muhammad Naveed Qasim built the backend. Muhammad Safiullah collected local crop data. And Muhammad Tayyab Abdullah Malik designed the app."
+  },
+  {
+   "id": "l2",
+   "visual": "card:problem",
+   "text": "In Pakistan, a rotation choice lasts years, while heat and water stress keep rising."
+  },
+  {
+   "id": "l3",
+   "visual": "c-overview-pin",
+   "text": "With Field Triage, a farmer finds their village on a satellite map."
+  },
+  {
+   "id": "l4",
+   "visual": "s-summary",
+   "text": "We replay twenty years of NASA weather, soil and slope for that exact spot."
+  },
+  {
+   "id": "l5",
+   "visual": "s-compare",
+   "text": "Their rotation is ranked against the best water saving, soil building and income options."
+  },
+  {
+   "id": "l6",
+   "visual": "s-year",
+   "text": "A month by month farm year shows bare soil, heat and dry spells."
+  },
+  {
+   "id": "l6b",
+   "visual": "s-details2",
+   "text": "Every option comes with reasons, risks and sources, in English or Urdu."
+  },
+  {
+   "id": "l7",
+   "visual": "card:end",
+   "text": "Field Triage. Built to support farmers, not replace them."
+  }
+ ]
+}

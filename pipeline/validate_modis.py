@@ -5,7 +5,7 @@ from datetime import datetime
 from collections import Counter
 
 # ==========================================
-# FIELD SHIFT - MODIS DATA VALIDATION
+# FIELD TRIAGE - MODIS DATA VALIDATION
 # Standard Python CSV module (No Pandas)
 # ==========================================
 

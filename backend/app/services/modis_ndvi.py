@@ -45,7 +45,7 @@ ORNL_CHUNK = 10  # the ORNL service returns at most 10 composite dates per subse
 ORNL_PROBE_TTL_S = 1800
 ORNL_PROBE_LIMIT_S = 15  # a stalled TLS handshake ignores httpx timeouts, so the probe gets a wall-clock limit
 ORNL_FIRST_RESULT_LIMIT_S = 120  # whole ORNL download (~100 small requests, 6 in parallel, ~30 s normally)
-USER_AGENT = "FieldShiftAdvisor/1.0 (crop-rotation decision-support tool)"
+USER_AGENT = "FieldTriage/1.0 (crop-rotation decision-support tool)"
 
 SOURCE_LABEL = "NASA MODIS Terra MOD13Q1 v061 NDVI (250 m, 16-day composites)"
 
@@ -300,7 +300,7 @@ def fetch_appeears(settings: Settings, lat: float, lon: float, start_year: int, 
     today = date.today()
     task = {
         "task_type": "point",
-        "task_name": f"fieldshift_ndvi_{pixel_key(lat, lon)}",
+        "task_name": f"fieldtriage_ndvi_{pixel_key(lat, lon)}",
         "params": {
             "dates": [{"startDate": f"01-01-{start_year}", "endDate": today.strftime("%m-%d-%Y")}],
             "layers": [

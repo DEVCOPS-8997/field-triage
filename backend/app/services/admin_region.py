@@ -20,7 +20,7 @@ import httpx
 from app.config import Settings
 
 NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
-NOMINATIM_UA = "FieldShiftAdvisor/1.0 (crop-rotation decision-support tool)"
+NOMINATIM_UA = "FieldTriage/1.0 (crop-rotation decision-support tool)"
 
 _lock = threading.Lock()
 _last = [0.0]
