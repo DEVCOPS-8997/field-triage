@@ -4,9 +4,16 @@
 {"rotation_id":"rot_pk_sorghum_chickpea","label":"Sorghum - Chickpea","strategy_type":"water_saving","region_id":"pk_punjab","sequence":["sorghum","chickpea"],"cover_crop":null,"notes":"Drought tolerant cereal then legume"},
 {"rotation_id":"rot_pk_sorghum_berseem","label":"Sorghum - Berseem Clover","strategy_type":"soil_building","region_id":"pk_punjab","sequence":["sorghum","berseem"],"cover_crop":null,"notes":"Near continuous cover, fodder legume"},
 {"rotation_id":"rot_pk_maize_wheat","label":"Spring Maize - Wheat","strategy_type":"income","region_id":"pk_punjab","sequence":["maize","wheat"],"cover_crop":null,"notes":"Market driven"},
+{"rotation_id":"rot_pk_millet_chickpea","label":"Pearl Millet - Chickpea","strategy_type":"water_saving","region_id":"pk_punjab","sequence":["millet","chickpea"],"cover_crop":null,"notes":"Two low water crops, summer cereal then winter legume"},
+{"rotation_id":"rot_pk_millet_pea","label":"Pearl Millet - Field Pea","strategy_type":"soil_building","region_id":"pk_punjab","sequence":["millet","pea"],"cover_crop":null,"notes":"Short winter legume after a hardy summer cereal"},
+{"rotation_id":"rot_pk_groundnut_wheat","label":"Groundnut - Wheat","strategy_type":"income","region_id":"pk_punjab","sequence":["groundnut","wheat"],"cover_crop":null,"notes":"Cash legume before the main winter cereal"},
+{"rotation_id":"rot_pk_wheat_mungbean","label":"Wheat - Summer Mungbean","strategy_type":"soil_building","region_id":"pk_punjab","sequence":["wheat","mungbean"],"cover_crop":null,"notes":"Short summer legume after wheat harvest"},
 {"rotation_id":"rot_us_corn_soy","label":"Corn - Soybean (current)","strategy_type":"existing","region_id":"us_midwest","sequence":["maize","soybean"],"cover_crop":null,"notes":"Midwest standard"},
 {"rotation_id":"rot_us_wheat_sorghum","label":"Wheat - Sorghum (current)","strategy_type":"existing","region_id":"us_midwest","sequence":["wheat","sorghum"],"cover_crop":null,"notes":"Dryland plains system"},
 {"rotation_id":"rot_us_sorghum_soy","label":"Sorghum - Soybean","strategy_type":"water_saving","region_id":"us_midwest","sequence":["sorghum","soybean"],"cover_crop":null,"notes":"Lower water need than corn"},
 {"rotation_id":"rot_us_corn_soy_rye","label":"Corn - Soybean + Rye Cover","strategy_type":"soil_building","region_id":"us_midwest","sequence":["maize","soybean"],"cover_crop":"cereal_rye","notes":"Winter cover cuts bare days and erosion"},
-{"rotation_id":"rot_us_corn_soy_wheat","label":"Corn - Soybean - Wheat","strategy_type":"income","region_id":"us_midwest","sequence":["maize","soybean","wheat"],"cover_crop":null,"notes":"Three crop diversification"}
+{"rotation_id":"rot_us_corn_soy_wheat","label":"Corn - Soybean - Wheat","strategy_type":"income","region_id":"us_midwest","sequence":["maize","soybean","wheat"],"cover_crop":null,"notes":"Three crop diversification"},
+{"rotation_id":"rot_us_sorghum_drybean","label":"Sorghum - Dry Bean","strategy_type":"water_saving","region_id":"us_midwest","sequence":["sorghum","dry_bean"],"cover_crop":null,"notes":"Two lower water crops, cereal then legume"},
+{"rotation_id":"rot_us_drybean_wheat","label":"Dry Bean - Winter Wheat","strategy_type":"soil_building","region_id":"us_midwest","sequence":["dry_bean","wheat"],"cover_crop":null,"notes":"Legume before winter cereal"},
+{"rotation_id":"rot_us_sunflower_wheat","label":"Sunflower - Winter Wheat","strategy_type":"income","region_id":"us_midwest","sequence":["sunflower","wheat"],"cover_crop":null,"notes":"Deep rooted oilseed then cereal"}
 ]
