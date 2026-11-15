@@ -28,6 +28,8 @@ import { SegmentedControl } from './ui/SegmentedControl'
 import { Skeleton } from './ui/Skeleton'
 import { buttonClasses } from './ui/buttonStyles'
 import { cn } from './ui/cn'
+import { EROSION_STYLE, type ErosionRisk } from '../lib/erosion'
+import { ErosionLegend } from './results/FieldRiskMap'
 
 /* ------------------------------------------------------------ basemaps */
 type MapStyle = 'standard' | 'satellite'
@@ -161,6 +163,12 @@ interface Props {
   selectedCard?: (f: FieldInfo) => ReactNode
   /** Footnote under the map; null hides it. */
   note?: string | null
+  /**
+   * Optional erosion risk per field_id (from `erosionRisk()` in lib/erosion). When given, those
+   * polygons and pins are coloured AND dash-patterned by level, the selected field gets a text label,
+   * and a legend explains the levels. Fields without an entry keep the default style.
+   */
+  erosionByField?: Record<string, ErosionRisk | null | undefined>
 }
 
 export default function FieldMap({
@@ -170,6 +178,7 @@ export default function FieldMap({
   isLoading = false,
   selectedCard,
   note = 'Field boundaries are hand-drawn demo polygons, not surveyed parcels.',
+  erosionByField,
 }: Props) {
   const navigate = useNavigate()
   const mapStyle = useMapStyle((s) => s.mapStyle)
@@ -366,7 +375,21 @@ export default function FieldMap({
           const selected = f.field_id === selectedId
           const hovered = !selected && hoveredId === f.field_id
           const latlngs = toLatLngs(f)
-          const style = selected ? POLY.selected : hovered ? POLY.hover : POLY.default
+          const risk = erosionByField?.[f.field_id] ?? null
+          const rs = risk ? EROSION_STYLE[risk.level] : null
+          const style = rs
+            ? {
+                color: rs.color,
+                weight: rs.weight + (selected ? 1 : 0),
+                dashArray: rs.dashArray,
+                fillColor: rs.fill,
+                fillOpacity: selected ? 0.42 : hovered ? 0.36 : 0.28,
+              }
+            : selected
+              ? POLY.selected
+              : hovered
+                ? POLY.hover
+                : POLY.default
           const select = () => onSelect(f.field_id)
           return (
             <Fragment key={`${f.field_id}-${selected}`}>
@@ -385,8 +408,9 @@ export default function FieldMap({
                   mouseout: () => setHoveredId((h) => (h === f.field_id ? null : h)),
                 }}
               >
-                <LTooltip sticky>
+                <LTooltip sticky={!(risk && selected)} permanent={!!(risk && selected)} direction="center">
                   {f.field_id} · {f.name}
+                  {risk ? ` · ${EROSION_STYLE[risk.level].label} erosion risk` : ''}
                 </LTooltip>
               </Polygon>
               {/* Marker keeps fields visible at low zoom, where the polygon is sub-pixel. */}
@@ -402,14 +426,17 @@ export default function FieldMap({
                     center={[f.location.lat, f.location.lon]}
                     radius={selected ? 11 : 7}
                     pathOptions={
-                      selected
-                        ? { color: '#04120A', weight: 2, fillColor: '#BEF264', fillOpacity: 1 }
-                        : { color: '#E7F5EC', weight: 2, fillColor: '#4ADE80', fillOpacity: 1 }
+                      rs
+                        ? { color: selected ? '#04120A' : '#E7F5EC', weight: 2, fillColor: rs.fill, fillOpacity: 1 }
+                        : selected
+                          ? { color: '#04120A', weight: 2, fillColor: '#BEF264', fillOpacity: 1 }
+                          : { color: '#E7F5EC', weight: 2, fillColor: '#4ADE80', fillOpacity: 1 }
                     }
                     eventHandlers={{ click: select }}
                   >
                     <LTooltip>
                       {f.field_id} · {f.name}
+                      {risk ? ` · ${EROSION_STYLE[risk.level].label} erosion risk` : ''}
                     </LTooltip>
                   </CircleMarker>
                 </>
@@ -556,6 +583,12 @@ export default function FieldMap({
       <div className="pointer-events-none absolute inset-x-4 bottom-4 z-[1000] flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="pointer-events-auto flex min-w-0 flex-col gap-2">
           {pin && <SearchPinCard pin={pin} fields={fields} onSelectField={goToField} onClose={clearPin} onAnalyze={() => navigate(`/location?lat=${pin.lat.toFixed(5)}&lon=${pin.lon.toFixed(5)}`)} />}
+          {erosionByField && Object.values(erosionByField).some(Boolean) && (
+            <ErosionLegend
+              risk={selectedField ? (erosionByField[selectedField.field_id] ?? null) : null}
+              className="glass-strong max-w-[420px] rounded-[var(--radius-control)] p-3"
+            />
+          )}
           {selectedField && !pin && (selectedCard ? selectedCard(selectedField) : <FieldInfoCard field={selectedField} />)}
           {note && <p className="glass-strong m-0 max-w-[360px] items-start gap-2 data-[pinned=true]:max-sm:hidden flex rounded-[var(--radius-control)] p-2 text-label font-semibold text-fg"
             data-pinned={pin ? 'true' : undefined}

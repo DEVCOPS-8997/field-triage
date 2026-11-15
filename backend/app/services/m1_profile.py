@@ -20,7 +20,9 @@ from app.utils.validation import ProfileUnavailableError
 
 MIN_MONTH_COVERAGE = 0.8  # fraction of days required to report a monthly statistic
 GOOD_MODIS_QA = (0, 1)  # SummaryQA 0=good, 1=marginal; 2=snow/ice, 3=cloudy are excluded
-HEAT_THRESHOLDS = (30, 34, 38, 42)
+# Heat days are counted at every whole degree so each crop is checked at its own threshold
+# (crops.json spans 28-45 C) and the warming scenario (+0..+4 C) never needs to round to a coarse bucket.
+HEAT_THRESHOLDS = tuple(range(24, 50))
 REQUIRED_COLS = {"date", "PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN", "sm_rootzone"}
 
 
@@ -134,6 +136,10 @@ def profile_from_daily(
                 heat_days_ge={str(t): int(round((g.T2M_MAX >= t).sum() * scale)) for t in HEAT_THRESHOLDS},
                 frost_days_le_0c=int(round((g.T2M_MIN <= 0).sum() * scale)),
                 dry_days_lt_1mm=int(round((rain < 1.0).sum() * scale)),
+                # Days with >= 25 mm of rain (erosive storms); None when no rain values exist.
+                heavy_rain_days_ge_25mm=(
+                    int(round((rain >= 25.0).sum() * scale)) if rain.notna().any() else None
+                ),
                 smap_rootzone_m3m3=_f(g.sm_rootzone.mean(), 4),
             )
             if "ETO" in g.columns and g.ETO.notna().sum() / ndays >= MIN_MONTH_COVERAGE:

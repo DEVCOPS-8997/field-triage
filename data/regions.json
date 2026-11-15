@@ -2,15 +2,41 @@
   {
     "region_id": "pk_punjab",
     "country_iso3": "PAK",
-    "name": "Punjab, Pakistan (approximate)",
-    "bbox": {"lat_min": 28.0, "lat_max": 34.0, "lon_min": 69.5, "lon_max": 75.5},
-    "note": "Approximate rectangle used only to decide whether a GPS point is inside the area covered by this region's crop calendars. It is an assumption, not an official boundary, and may include nearby non-Punjab land. Farmers near the edge should confirm the crop calendar applies locally."
+    "name": "Punjab, Pakistan",
+    "bbox": {"lat_min": 27.7, "lat_max": 34.05, "lon_min": 69.3, "lon_max": 75.4},
+    "admin_names": ["Punjab", "Islamabad", "Islamabad Capital Territory"],
+    "calendar_fallback": [],
+    "note": "Approximate rectangle. Where it overlaps a neighbouring province, the province is confirmed from OpenStreetMap reverse geocoding. Farmers near a border should confirm the crop calendar applies locally."
   },
   {
-    "region_id": "us_midwest",
-    "country_iso3": "USA",
-    "name": "US Midwest (approximate)",
-    "bbox": {"lat_min": 36.5, "lat_max": 49.5, "lon_min": -104.0, "lon_max": -80.5},
-    "note": "Approximate rectangle used only to decide whether a GPS point is inside the area covered by this region's crop calendars. It is an assumption, not an official boundary."
+    "region_id": "pk_sindh",
+    "country_iso3": "PAK",
+    "name": "Sindh, Pakistan",
+    "bbox": {"lat_min": 23.6, "lat_max": 28.6, "lon_min": 66.6, "lon_max": 71.2},
+    "admin_names": ["Sindh"],
+    "calendar_fallback": ["pk_punjab"],
+    "note": "Approximate rectangle, confirmed from OpenStreetMap reverse geocoding where provinces overlap. Crops without a Sindh calendar borrow the Punjab calendar, which is flagged in the results."
+  },
+  {
+    "region_id": "pk_kp",
+    "country_iso3": "PAK",
+    "name": "Khyber Pakhtunkhwa, Pakistan",
+    "bbox": {"lat_min": 31.2, "lat_max": 36.95, "lon_min": 69.2, "lon_max": 74.1},
+    "bboxes": [
+      {"lat_min": 31.2, "lat_max": 34.0, "lon_min": 69.2, "lon_max": 71.6},
+      {"lat_min": 33.6, "lat_max": 36.95, "lon_min": 70.9, "lon_max": 74.1}
+    ],
+    "admin_names": ["Khyber Pakhtunkhwa"],
+    "calendar_fallback": ["pk_punjab"],
+    "note": "Approximate rectangle, confirmed from OpenStreetMap reverse geocoding where provinces overlap. Crops without a KP calendar borrow the Punjab calendar, which is flagged in the results."
+  },
+  {
+    "region_id": "pk_balochistan",
+    "country_iso3": "PAK",
+    "name": "Balochistan, Pakistan",
+    "bbox": {"lat_min": 24.8, "lat_max": 32.1, "lon_min": 60.8, "lon_max": 70.3},
+    "admin_names": ["Balochistan"],
+    "calendar_fallback": ["pk_sindh", "pk_punjab"],
+    "note": "Approximate rectangle, confirmed from OpenStreetMap reverse geocoding where provinces overlap. Crops without a Balochistan calendar borrow the Sindh, then Punjab, calendar, which is flagged in the results."
   }
 ]

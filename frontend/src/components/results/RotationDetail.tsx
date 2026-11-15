@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { Insight, RotationScore } from '../../types/api'
 import EvidenceExplorer from './EvidenceExplorer'
+import Term from '../ui/Term'
 import { InsightGroup } from './InsightAccordion'
 import { Badge } from '../../lib/ui4/primitives'
 import { ConfidencePill } from '../../lib/ui/Pill'
@@ -116,6 +117,7 @@ export default function RotationDetail({ rotation }: { rotation: RotationScore }
           </h3>
           <div className="flex flex-wrap items-center gap-2">
             {rotation.is_existing && <Badge tone="neutral">Your current rotation</Badge>}
+            {rotation.shortlist_reason && !rotation.is_existing && <Badge tone="accent">{rotation.shortlist_reason}</Badge>}
             <Badge tone="info">{strategyLabel(rotation.strategy_type)}</Badge>
             <ConfidencePill confidence={rotation.confidence} />
           </div>
@@ -124,11 +126,25 @@ export default function RotationDetail({ rotation }: { rotation: RotationScore }
           <span className={cx('block text-[32px] leading-none font-semibold', tabular, fg.fg)}>
             {rotation.overall.toFixed(0)}
           </span>
-          <span className={cx(type.label, fg.fg3, tabular)}>
-            range {rotation.overall_low.toFixed(0)} to {rotation.overall_high.toFixed(0)}
+          <span className={cx('inline-flex items-center gap-1', type.label, fg.fg3, tabular)}>
+            <Term id="percentile_range">range</Term> {rotation.overall_low.toFixed(0)} to {rotation.overall_high.toFixed(0)}
           </span>
         </div>
       </header>
+
+      {rotation.fits_constraints === false && (rotation.constraint_failures?.length ?? 0) > 0 && (
+        <div role="note" className={cx('flex flex-col gap-1 rounded-xl border border-[color:var(--color-danger,#fda4af)] bg-[rgba(253,164,175,0.10)] p-3', type.label, fg.fg2)}>
+          <span className={cx('flex items-center gap-2 font-semibold', fg.danger)}>
+            <TriangleAlert size={16} aria-hidden="true" />
+            Doesn't fit your farm because:
+          </span>
+          <ul className="m-0 flex flex-col gap-0.5 pl-6">
+            {rotation.constraint_failures!.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div
         role="tablist"

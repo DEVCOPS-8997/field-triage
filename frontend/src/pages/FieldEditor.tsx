@@ -13,7 +13,17 @@ import {
   Trash2,
   Undo2,
 } from 'lucide-react'
-import { accountApi, useDeleteField, useMyField, useSaveField, type GeocodeHit, type ShapeIn } from '../api/account'
+import {
+  EQUIPMENT_IDS,
+  accountApi,
+  equipParam,
+  useDeleteField,
+  useMyField,
+  useSaveField,
+  type GeocodeHit,
+  type ShapeIn,
+} from '../api/account'
+import type { EquipmentId } from '../types/api'
 import { api } from '../api/client'
 import DrawMap, { type DrawMode } from '../components/fields/DrawMap'
 import PageHeader from '../components/shell/PageHeader'
@@ -32,6 +42,16 @@ const HELP: Record<Exclude<DrawMode, null>, string> = {
   polygon: 'Click each corner of the field on the map. Click the first corner again (or press Finish) to close the shape.',
   rectangle: 'Click one corner of the field, then click the opposite corner.',
   circle: 'Click the centre of the field, then click a point on its edge.',
+}
+
+/** Plain labels for "Equipment or help I do NOT have" (ids match the backend FarmConstraints). */
+const EQUIPMENT_COPY: Record<EquipmentId, { label: string; hint: string }> = {
+  seed_drill: { label: 'Seed drill', hint: 'Sows wheat, chickpea or lentil in lines, also for zero-till sowing.' },
+  combine_harvester: { label: 'Combine harvester (own or for hire)', hint: 'Cuts large wheat or rice areas quickly at harvest time.' },
+  rice_transplanting: { label: 'Workers or machine to transplant rice', hint: 'Rice seedlings must be planted out by hand or machine within a few days.' },
+  picking_labour: { label: 'Workers to pick cotton by hand', hint: 'Cotton is picked by hand several times over many weeks.' },
+  orchard_commitment: { label: 'Land I can keep under fruit trees for 10+ years', hint: 'Orchards take years before they pay and tie up the field.' },
+  daily_market_access: { label: 'A market I can reach every day', hint: 'Vegetables must be sold within a day or two of picking.' },
 }
 
 function measureShape(s: ShapeIn | null) {
@@ -98,6 +118,7 @@ export default function FieldEditor() {
   const [equipment, setEquipment] = useState('')
   const [market, setMarket] = useState('')
   const [notes, setNotes] = useState('')
+  const [unavail, setUnavail] = useState<EquipmentId[]>([])
   const [error, setError] = useState<string | null>(null)
 
   // Load an existing field into the editor once.
@@ -118,6 +139,7 @@ export default function FieldEditor() {
     setEquipment(f.details.equipment ?? '')
     setMarket(f.details.market ?? '')
     setNotes(f.details.notes ?? '')
+    setUnavail(f.unavailable_equipment ?? [])
   }, [existing.data, loadedId])
 
   const m = useMemo(() => measureShape(shape), [shape])
@@ -182,6 +204,7 @@ export default function FieldEditor() {
           irrigation,
           current_rotation_id: rotation || null,
           details: { water_source: waterSource || null, soil_type: soilType || null, main_goal: goal || null, equipment: equipment || null, market: market || null, notes: notes || null },
+          unavailable_equipment: unavail,
         },
       })
       navigate(`/my-fields/${saved.id}`, { replace: true })
@@ -204,7 +227,8 @@ export default function FieldEditor() {
     existing.data &&
     `/location?lat=${existing.data.center.lat.toFixed(5)}&lon=${existing.data.center.lon.toFixed(5)}&field=${existing.data.id}` +
       `&name=${encodeURIComponent(existing.data.name)}&area_ha=${existing.data.area_ha.toFixed(4)}&irrigation=${existing.data.irrigation}` +
-      (existing.data.current_rotation_id ? `&rotation=${existing.data.current_rotation_id}` : '')
+      (existing.data.current_rotation_id ? `&rotation=${existing.data.current_rotation_id}` : '') +
+      equipParam(unavail)
 
   return (
     <div className="flex min-w-0 flex-col">
@@ -410,6 +434,40 @@ export default function FieldEditor() {
               onChange={setGoal}
               options={[['', 'Skip'], ['water', 'Saving water'], ['soil', 'Healthier soil'], ['income', 'More income'], ['resilience', 'Safer against bad weather'], ['fodder', 'Fodder for animals']]}
             />
+            <fieldset className="m-0 flex min-w-0 flex-col gap-2 rounded-[var(--radius-control)] border border-[color:var(--color-glass-border,rgba(190,242,220,0.16))] p-3">
+              <legend className="px-1 text-label font-semibold text-fg-2">Equipment or help I do NOT have</legend>
+              <p className="m-0 text-label text-fg-3">
+                Tick what you cannot get. Rotations that need it are marked as not fitting your farm. Leave all empty if you are not sure.
+              </p>
+              {EQUIPMENT_IDS.map((eid) => {
+                const on = unavail.includes(eid)
+                const hintId = `equip-hint-${eid}`
+                return (
+                  <label
+                    key={eid}
+                    className={`flex min-h-[44px] cursor-pointer items-start gap-3 rounded-[var(--radius-control)] px-2 py-2 transition-colors hover:bg-[rgba(255,255,255,0.05)] ${on ? 'bg-[rgba(253,164,175,0.08)]' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 size-5 shrink-0 accent-[color:var(--color-accent,#4ade80)]"
+                      checked={on}
+                      aria-describedby={hintId}
+                      onChange={(e) =>
+                        setUnavail((cur) =>
+                          e.target.checked ? EQUIPMENT_IDS.filter((x) => x === eid || cur.includes(x)) : cur.filter((x) => x !== eid),
+                        )
+                      }
+                    />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="text-label font-semibold text-fg">{EQUIPMENT_COPY[eid].label}</span>
+                      <span id={hintId} className="text-label text-fg-3">
+                        {EQUIPMENT_COPY[eid].hint}
+                      </span>
+                    </span>
+                  </label>
+                )
+              })}
+            </fieldset>
             <label className="flex flex-col gap-1 text-label font-semibold text-fg-2">
               Machines you have
               <input className={inputCls} value={equipment} onChange={(e) => setEquipment(e.target.value)} placeholder="e.g. tractor, seed drill" maxLength={200} />

@@ -38,10 +38,10 @@ def test_m3_committed_datasets_load_and_cross_reference_cleanly() -> None:
     loader = DataLoader(settings=get_settings(data_mode="demo", data_dir=REAL_DATA_DIR))
     catalog = loader.load_catalog()
 
-    assert len(catalog.fields) == 8
-    assert [f.field_id for f in catalog.fields] == [f"F0{i}" for i in range(1, 9)]
-    assert len(catalog.crops) == 10
-    assert len(catalog.rotations) == 10
+    assert len(catalog.fields) == 4
+    assert [f.field_id for f in catalog.fields] == [f"F0{i}" for i in range(1, 5)]
+    assert len(catalog.crops) == 75
+    assert len(catalog.rotations) == 54
     assert len(catalog.nasa_metadata) == 15
     assert catalog.parameters["validated"] is False
     assert catalog.parameters["status"] == "illustrative"

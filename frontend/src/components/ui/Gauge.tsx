@@ -12,6 +12,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { CircleSlash } from 'lucide-react'
 import { cn, TONE_COLOR, type ScoreTone } from './cn'
+import { useI18n } from '../../lib/i18n'
 
 export interface GaugeProps {
   value: number | null
@@ -27,6 +28,7 @@ const STROKE = { sm: 8, md: 12, lg: 16 } as const
 const VALUE_CLS = { sm: 'text-body', md: 'text-heading', lg: 'text-display' } as const
 
 export function Gauge({ value, size = 'md', tone = 'accent', label, caption, className }: GaugeProps) {
+  const { t } = useI18n()
   const gradId = `fsa-g-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`
   const px = DIM[size]
   const sw = STROKE[size]
@@ -50,13 +52,13 @@ export function Gauge({ value, size = 'md', tone = 'accent', label, caption, cla
 
   const stroke = tone === 'accent' ? `url(#${gradId})` : TONE_COLOR[tone]
   const a11y = unavailable
-    ? { role: 'img', 'aria-label': `${label ?? 'Score'}: unavailable` }
+    ? { role: 'img', 'aria-label': t('common.scoreUnavailable', { label: label ?? t('common.score') }) }
     : {
         role: 'meter',
         'aria-valuenow': Math.round(clamped),
         'aria-valuemin': 0,
         'aria-valuemax': 100,
-        'aria-label': `${label ?? 'Score'}: ${Math.round(clamped)} out of 100`,
+        'aria-label': t('common.scoreOutOf', { label: label ?? t('common.score'), value: Math.round(clamped) }),
       }
 
   return (
@@ -103,7 +105,7 @@ export function Gauge({ value, size = 'md', tone = 'accent', label, caption, cla
         </div>
       </div>
       {(caption || unavailable) && (
-        <figcaption className="text-label font-normal text-fg-2">{unavailable ? 'unavailable' : caption}</figcaption>
+        <figcaption className="text-label font-normal text-fg-2">{unavailable ? t('common.unavailable') : caption}</figcaption>
       )}
     </figure>
   )

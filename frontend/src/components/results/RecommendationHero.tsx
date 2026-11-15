@@ -30,6 +30,7 @@ export default function RecommendationHero({
   total: number
   onDetails: (id: string) => void
 }) {
+  // Ranks come from all scored rotations, so the shortlist's best can be below #1 when #1 breaks a farm limit.
   const currentIsBest = !current || current.rotation_id === best.rotation_id
   const gain = current ? best.overall - current.overall : 0
   const close = !currentIsBest && gain < 3
@@ -50,10 +51,26 @@ export default function RecommendationHero({
           </span>
           <h2 className={cx('m-0', type.display, fg.fg, 'text-[32px] md:text-[40px]')}>{best.label}</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="neutral">Rank 1 of {total}</Badge>
-            <Badge tone="info">{strategyLabel(best.strategy_type)}</Badge>
+            <Badge tone="neutral">
+              Rank {best.rank} of {total}
+            </Badge>
+            {best.shortlist_reason && !best.is_existing ? (
+              <Badge tone="accent">{best.shortlist_reason}</Badge>
+            ) : (
+              <Badge tone="info">{strategyLabel(best.strategy_type)}</Badge>
+            )}
             <ConfidencePill confidence={best.confidence} />
           </div>
+          {current && current.fits_constraints === false && (current.constraint_failures?.length ?? 0) > 0 && (
+            <div className={cx('flex flex-col gap-1 rounded-xl bg-[rgba(253,164,175,0.12)] px-3 py-2', type.label, fg.fg2)}>
+              <span className={cx('font-semibold', fg.danger)}>Your current {current.label} doesn't fit your farm because:</span>
+              <ul className="m-0 flex flex-col gap-0.5 pl-5">
+                {current.constraint_failures!.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className={cx('m-0 max-w-[60ch]', type.body, fg.fg2)}>
             {currentIsBest
               ? 'None of the alternatives scored higher with your priorities and the 20-year NASA record for this point.'

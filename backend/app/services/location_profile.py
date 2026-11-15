@@ -32,13 +32,34 @@ def load_regions(settings: Settings) -> list[dict[str, Any]]:
         raise DatasetIntegrityError(f"regions.json missing or invalid at '{path}': {exc}") from exc
 
 
+def _bbox_contains(r: dict[str, Any], lat: float, lon: float) -> bool:
+    boxes = r.get("bboxes") or [r["bbox"]]
+    return any(
+        b["lat_min"] <= lat <= b["lat_max"] and b["lon_min"] <= lon <= b["lon_max"] for b in boxes
+    )
+
+
 def resolve_region(lat: float, lon: float, settings: Settings) -> dict[str, Any]:
-    """Return the supported region containing the point, or raise (never fall back to a nearest one)."""
+    """Return the supported region containing the point, or raise (never fall back to a nearest one).
+
+    Rectangles overlap along borders. With several candidates, the province name from reverse
+    geocoding decides; if that is unavailable, the first candidate in `regions.json` order wins
+    (deterministic; file order = agricultural priority) and the region carries
+    `resolved_by = "file_order"` so the result can tell the farmer to confirm the province.
+    """
     regions = load_regions(settings)
-    for r in regions:
-        b = r["bbox"]
-        if b["lat_min"] <= lat <= b["lat_max"] and b["lon_min"] <= lon <= b["lon_max"]:
-            return r
+    candidates = [r for r in regions if _bbox_contains(r, lat, lon)]
+    if len(candidates) == 1:
+        return {**candidates[0], "resolved_by": "rectangle"}
+    if candidates:
+        from app.services.admin_region import lookup_state
+
+        state = (lookup_state(settings, lat, lon) or "").strip().lower()
+        if state:
+            for r in candidates:
+                if any(state == n.strip().lower() for n in r.get("admin_names", [])):
+                    return {**r, "resolved_by": "reverse_geocode"}
+        return {**candidates[0], "resolved_by": "file_order"}
     names = ", ".join(r["name"] for r in regions)
     raise RequestValidationError(
         f"Location ({lat:.4f}, {lon:.4f}) is outside the supported regions ({names}). "
@@ -68,16 +89,42 @@ def map_current_rotation(
             "Provide current_rotation_id or current_crop so the current rotation can be compared."
         )
     crop = current_crop.strip().lower()
-    matches = [r["rotation_id"] for r in regional if crop in [c.lower() for c in r.get("sequence", [])]]
-    if len(matches) == 1:
-        return matches[0]
+    matches = [r for r in regional if crop in [c.lower() for c in r.get("sequence", [])]]
     if not matches:
         raise RequestValidationError(
             f"Crop '{current_crop}' is not part of any rotation in region '{region_id}'."
         )
-    raise RequestValidationError(
-        f"Crop '{current_crop}' appears in several rotations {matches}; "
-        "choose one with current_rotation_id."
+    # Deterministic pick when several rotations contain the crop: the most typical system first
+    # (conventional strategy), then a rotation that starts with the crop, then the shortest
+    # sequence, then catalog order. The response warns the farmer so they can change it.
+    strategy_rank = {"conventional": 0, "existing": 0, "water_saving": 1, "soil_building": 2, "income": 3}
+    order = {r["rotation_id"]: i for i, r in enumerate(regional)}
+    best = min(
+        matches,
+        key=lambda r: (
+            strategy_rank.get(str(r.get("strategy_type")), 9),
+            0 if str(r.get("sequence", [""])[0]).lower() == crop else 1,
+            len(r.get("sequence", [])),
+            order[r["rotation_id"]],
+        ),
+    )
+    return best["rotation_id"]
+
+
+def current_rotation_note(
+    *, region_id: str, rotations: list[dict[str, Any]], current_crop: str | None, chosen_id: str
+) -> str | None:
+    """Plain-language warning when the current rotation was inferred from a crop with several matches."""
+    if not current_crop:
+        return None
+    crop = current_crop.strip().lower()
+    matches = [r for r in rotations if r.get("region_id") == region_id and crop in [c.lower() for c in r.get("sequence", [])]]
+    if len(matches) <= 1:
+        return None
+    label = next((r.get("label", chosen_id) for r in matches if r["rotation_id"] == chosen_id), chosen_id)
+    return (
+        f"'{current_crop}' is part of {len(matches)} rotations here; we assumed your current rotation is "
+        f"'{label}' (the most common one). Pick your exact rotation if this is wrong."
     )
 
 

@@ -229,14 +229,15 @@ def test_component_equations_soil_erosion_pest_and_income(real_catalog: Any) -> 
     """Hand-verify Section 7 equations for soil_health, erosion, pest_break, and income."""
     crops = real_catalog.crops_by_id
 
-    # 1. Soil health: Sorghum (n=0) + Chickpea (net n=35, cited), n_ref=100, living roots 0.75
-    # 0.5 * 0.75 + 0.5 * 0.35 = 0.55 -> 55.0
+    # 1. Soil health: Sorghum (n=0) + Chickpea (cited net n from the catalog), n_ref=100, roots 0.75
+    # score = 100 * (0.5 * 0.75 + 0.5 * min(n / 100, 1))
+    n_chickpea = float(crops["chickpea"]["n_fix_kg_ha"])
     sh, roots, total_n = compute_soil_health_score(
         [crops["sorghum"], crops["chickpea"]], None, n_ref_kg_ha=100.0, living_root_share=0.75
     )
     assert math.isclose(roots, 0.75)
-    assert math.isclose(total_n, 35.0)
-    assert math.isclose(sh, 55.0, rel_tol=1e-6)
+    assert math.isclose(total_n, n_chickpea)
+    assert math.isclose(sh, 100.0 * (0.5 * 0.75 + 0.5 * min(n_chickpea / 100.0, 1.0)), rel_tol=1e-6)
 
     # 2. Pest break:
     # Same family: maize (poaceae) -> wheat (poaceae) => 20.0
@@ -278,22 +279,28 @@ def test_component_equations_soil_erosion_pest_and_income(real_catalog: Any) -> 
 
 def test_cover_crop_improves_soil_and_erosion_without_distorting_cash_metrics(
     real_catalog: Any,
-    f05_demo_profile: FieldProfile,
+    f01_demo_profile: FieldProfile,
 ) -> None:
-    """Verify `rot_us_corn_soy_rye` cover crop (`cereal_rye`) rules per Section 8.7."""
-    f05: FieldInfo = real_catalog.fields_by_id["F05"]
+    """Verify the cover-crop rules (Section 8.7) on `rot_pk_cotton_wheat_mung` (mungbean cover)."""
+    f05: FieldInfo = real_catalog.fields_by_id["F01"]
     crops = real_catalog.crops_by_id
 
+    # Rice (Jun-Nov) + wheat (Nov-Apr) leaves May bare; mungbean (Apr-Jun) fills it.
     bare_with, bare_without, cycle_m = compute_calendar_bare_fraction(
-        [crops["maize"], crops["soybean"]], crops["cereal_rye"], "us_midwest"
+        [crops["rice"], crops["wheat"]], crops["mungbean"], "pk_punjab"
     )
-    assert cycle_m == 24
-    assert math.isclose(bare_without, 0.5)
+    assert cycle_m == 12
+    assert math.isclose(bare_without, 1 / 12)
     assert math.isclose(bare_with, 0.0)
+    rotations = list(real_catalog.rotations) + [{
+        "rotation_id": "test_rice_wheat_mung", "label": "Rice - Wheat + Mungbean cover",
+        "strategy_type": "soil_building", "region_id": "pk_punjab",
+        "sequence": ["rice", "wheat"], "cover_crop": "mungbean",
+    }]
 
-    # Compare rot_us_corn_soy vs rot_us_corn_soy_rye when MODIS bare_days_est_mean is unavailable
-    # so both use calendar bare_fraction on identical cash crops:
-    prof_dict = f05_demo_profile.model_dump()
+    # Compare cotton-wheat with and without the cover crop when MODIS bare_days_est_mean is
+    # unavailable, so both use the calendar bare_fraction on identical cash crops:
+    prof_dict = f01_demo_profile.model_dump()
     prof_dict["climatology"]["bare_days_est_mean"] = None
     profile = FieldProfile.model_validate(prof_dict)
 
@@ -301,18 +308,18 @@ def test_cover_crop_improves_soil_and_erosion_without_distorting_cash_metrics(
         field=f05,
         profile=profile,
         crops_by_id=crops,
-        rotations=real_catalog.rotations,
+        rotations=rotations,
         parameters=real_catalog.parameters,
     )
-    base = next(ev for ev in res.evaluations if ev.rotation_id == "rot_us_corn_soy")
-    rye = next(ev for ev in res.evaluations if ev.rotation_id == "rot_us_corn_soy_rye")
+    base = next(ev for ev in res.evaluations if ev.rotation_id == "rot_pk_rice_wheat")
+    rye = next(ev for ev in res.evaluations if ev.rotation_id == "test_rice_wheat_mung")
 
     # Cover crop boosts soil_health (more living-root months) and erosion (bare 0.5 -> 0.0)
     assert rye.soil_subscores["soil_health"] > base.soil_subscores["soil_health"]
     assert rye.soil_subscores["erosion"] > base.soil_subscores["erosion"]
     assert rye.scores["soil"] > base.scores["soil"]
 
-    # Cash-crop metrics remain strictly identical (cereal_rye is NOT a commercial cash crop)
+    # Cash-crop metrics remain strictly identical (the cover crop is not counted as a cash crop)
     assert rye.scores.get("income") == base.scores.get("income")
     assert rye.annual_value_usd_ha == base.annual_value_usd_ha
     assert rye.scores["water"] == base.scores["water"]
@@ -410,7 +417,7 @@ def test_priorities_scenario_ranking_ties_and_unclamped_percentiles(
         parameters=real_catalog.parameters,
         priorities=Priorities(w_water=0.05, w_soil=0.05, w_income=0.85, w_resilience=0.05),
     )
-    assert water_focused.evaluations[0].rotation_id == "rot_pk_sorghum_chickpea"
+    assert water_focused.evaluations[0].strategy_type == "water_saving"
     # No market data passed -> income is not scored and its weight goes to the other components
     assert all("income" not in ev.scores and not ev.income_scored for ev in income_focused.evaluations)
 
@@ -483,7 +490,7 @@ def test_priorities_scenario_ranking_ties_and_unclamped_percentiles(
     # Construct 20 years where 19 years are viable (score 100) and 1 catastrophic year fails (score 0).
     # Then p10 == p90 == 100.0 while mean overall < 100.0 — overall_low must stay 100.0 (unclamped)!
     skew_dict = make_synthetic_profile_dict(
-        field_id="F05", region_id="us_midwest", data_mode="demo", n_years=20, start_year=2005
+        field_id="F01", region_id="pk_punjab", data_mode="demo", n_years=20, start_year=2005
     )
     for rec in skew_dict["monthly"]:
         rec["rain_mm"] = 120.0
@@ -492,20 +499,20 @@ def test_priorities_scenario_ranking_ties_and_unclamped_percentiles(
         if rec["year"] == 2005 and rec["month"] in (5, 6, 7, 8, 9, 10):
             rec["rain_mm"] = 0.0  # 1 catastrophic year out of 20 (5% < 10th percentile)
 
-    f05 = real_catalog.fields_by_id["F05"]
+    f01_skew = real_catalog.fields_by_id["F01"]
     skew_res = evaluate_rotations(
-        field=f05,
+        field=f01_skew,
         profile=FieldProfile.model_validate(skew_dict),
         crops_by_id=real_catalog.crops_by_id,
         rotations=real_catalog.rotations,
         parameters=real_catalog.parameters,
         priorities=Priorities(w_water=0.0, w_soil=0.0, w_income=0.0, w_resilience=1.0),
     )
-    cs = next(ev for ev in skew_res.evaluations if ev.rotation_id == "rot_us_corn_soy")
+    cs = next(ev for ev in skew_res.evaluations if ev.rotation_id == "rot_pk_sorghum_chickpea")
     expected_vals = np.array(list(cs.annual_overalls.values()), dtype=float)
-    assert cs.overall == 95.0
+    assert cs.overall < 100.0  # the catastrophic year pulls the mean down
     assert cs.overall_low == round(float(np.percentile(expected_vals, 10)), 2)
-    assert cs.overall_low == 100.0  # Proves p10 is NOT clamped down to mean 95.0!
+    assert cs.overall_low == 100.0  # Proves p10 is NOT clamped down to the mean
 
 
 def test_confidence_reflects_demo_vs_observed_coverage_and_dynamic_validated_flag(

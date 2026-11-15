@@ -63,7 +63,7 @@ export function GlassCard({
         PAD[padding],
         selected && 'border-accent! shadow-[var(--shadow-glow)]!',
         interactive &&
-          'motion-transform block w-full min-h-[44px] cursor-pointer text-left transition duration-150 ease-[var(--ease-out-soft)] hover:-translate-y-0.5 hover:border-control-border',
+          'motion-transform block w-full min-h-[44px] cursor-pointer text-start transition duration-150 ease-[var(--ease-out-soft)] hover:-translate-y-0.5 hover:border-control-border',
         className,
       )}
       {...rest}

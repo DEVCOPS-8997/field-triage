@@ -409,8 +409,11 @@
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1rem;
-    padding-right: 2.5rem;
+    padding-inline-end: 2.5rem;
     cursor: pointer;
+  }
+  [dir="rtl"] select {
+    background-position: left 0.75rem center;
   }
   select:disabled {
     cursor: not-allowed;
@@ -500,4 +503,185 @@
 @media (prefers-reduced-motion: reduce) {
   .insight-row[open] > .insight-body,
   .evidence-panel { animation: none; }
+}
+
+/* ==================================================================
+   Urdu / RTL
+   Set by LanguageProvider: <html lang="ur" dir="rtl">. These rules are
+   deliberately unlayered so they win over Tailwind utilities (which
+   live in @layer utilities) without !important. English is untouched:
+   every rule below is scoped to :lang(ur) or [dir="rtl"].
+   ------------------------------------------------------------------
+   Fonts
+   - Body, buttons, inputs, tables, chart labels: Noto Naskh Arabic
+     (clear at 14-17px, close to printed Urdu textbooks and newspapers).
+   - Page and card headings (h1, h2, .font-display): Noto Nastaliq Urdu,
+     the calligraphic style Urdu readers expect for titles. Nastaliq is
+     never used below heading size: it gets hard to read when small.
+   - Plus Jakarta Sans stays first in the stack so Latin words and
+     Western digits inside Urdu text look exactly like the English UI
+     (the browser falls through to the Urdu face for Arabic letters).
+   ================================================================== */
+html:lang(ur) {
+  --font-sans: "Plus Jakarta Sans", "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
+  --font-urdu-body: "Noto Naskh Arabic", "Plus Jakarta Sans", "Segoe UI", Tahoma, sans-serif;
+  /* Fraunces first: Latin words and digits in Urdu headings match the English design. */
+  --font-display: "Fraunces", "Noto Nastaliq Urdu", "Noto Naskh Arabic", Georgia, serif;
+
+  /* Arabic script has a smaller x-height than Latin: one step larger, generous leading. */
+  --text-label: 0.9375rem;
+  --text-label--line-height: 1.8;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.8;
+  --text-heading: 1.5rem;
+  --text-heading--line-height: 2.1;
+  --text-display: 2.125rem;
+  --text-display--line-height: 2.1;
+}
+
+html:lang(ur) body {
+  line-height: 1.8;
+}
+
+/* English islands inside the Urdu UI (brand name, "EN" toggle, English-only backend text)
+   keep the English type scale. */
+html:lang(ur) [lang="en"] {
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.4;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+  --text-heading: 1.5rem;
+  --text-heading--line-height: 1.2;
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.2;
+  line-height: 1.5;
+}
+
+/* Never add letter-spacing (tracking) to Arabic script: it breaks the joins between letters. */
+html:lang(ur) *:lang(ur) {
+  letter-spacing: 0;
+}
+
+/* Form controls do not inherit fonts by default. */
+html:lang(ur) :is(button, input, select, textarea, optgroup, option) {
+  font-family: var(--font-sans);
+}
+
+/* Headings: Nastaliq at heading/display size. h3+ stay Naskh (they are body-sized). */
+html:lang(ur) :is(h1, h2, .font-display):lang(ur) {
+  font-family: var(--font-display);
+  line-height: 2.1;
+  font-weight: 600;
+  /* Nastaliq descends far below the baseline; keep the next line clear. */
+  padding-block: 0.05em;
+}
+html:lang(ur) :is(h3, h4, h5, h6):lang(ur) {
+  font-family: var(--font-sans);
+  line-height: 1.8;
+}
+/* Big numbers set in .font-display stay Latin-looking and compact. */
+html:lang(ur) .font-display.tabular-nums {
+  line-height: 1.4;
+  padding-block: 0;
+}
+
+/* Tight leading utilities clip Urdu ascenders (kasra, nuqta, madd). */
+html:lang(ur)
+  :is(
+    .leading-none,
+    .leading-tight,
+    .leading-snug,
+    .leading-normal,
+    .leading-5,
+    .leading-6,
+    [class*="leading-[1"]
+  ):lang(ur) {
+  line-height: 1.8;
+}
+
+/* Small fixed-size text: keep it readable in Naskh. */
+html:lang(ur) :is(.text-\[12px\], .text-\[0\.75rem\], .text-xs):lang(ur) {
+  font-size: 0.8125rem;
+}
+html:lang(ur) :is(.text-\[14px\]):lang(ur) {
+  font-size: 0.9375rem;
+}
+
+/* Single-line truncation on a Nastaliq heading would cut the descenders: let it wrap instead. */
+html:lang(ur) :is(h1, h2, .font-display).truncate:lang(ur) {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+/* Single-line truncated Naskh text keeps its ellipsis but gets room for marks. */
+html:lang(ur) .truncate:lang(ur) {
+  padding-block: 0.1em;
+}
+
+/* Default alignment follows the reading direction. */
+html[dir="rtl"] .text-left {
+  text-align: start;
+}
+
+/* ------------------------------------------------------------ LTR islands
+   Numbers with units, coordinates, codes, formulas, charts and maps keep
+   left-to-right order inside Urdu text. Use <Ltr> or className="ltr". */
+.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+html[dir="rtl"] .ltr {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+html[dir="rtl"] :is(code, kbd, samp, pre, .font-mono) {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+/* Block formulas: right-aligned in the RTL column, but read left to right. */
+html[dir="rtl"] code.block {
+  text-align: left;
+}
+
+/* Maps and charts are drawn in screen coordinates: never mirror them. */
+html[dir="rtl"] :is(.leaflet-container, .recharts-wrapper, .recharts-responsive-container, svg) {
+  direction: ltr;
+}
+/* ...but Urdu text inside map tooltips / popups still reads right to left. */
+html[dir="rtl"] :is(.leaflet-tooltip, .leaflet-popup-content, .recharts-tooltip-wrapper, .recharts-legend-wrapper) {
+  direction: rtl;
+  text-align: start;
+}
+html:lang(ur) :is(.leaflet-tooltip, .recharts-text, .recharts-legend-item-text, .recharts-tooltip-wrapper) {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+html:lang(ur) .leaflet-tooltip {
+  line-height: 1.7;
+}
+
+/* ------------------------------------------------------------ mirroring
+   Arrows that mean "back" / "forward" point the other way in RTL.
+   lucide-react adds lucide-<name> classes automatically; for anything
+   else add className="rtl-flip". Chevrons used as disclosure toggles
+   (rotated when open) are NOT auto-flipped: add rtl-flip yourself when
+   a chevron means "next". */
+html[dir="rtl"] :is(.rtl-flip, .lucide-arrow-left, .lucide-arrow-right, .lucide-move-left, .lucide-move-right) {
+  transform: scaleX(-1);
+}
+
+/* Native range fills from the inline-start side in RTL. */
+html[dir="rtl"] .fsa-range::-webkit-slider-runnable-track {
+  background: linear-gradient(to left, var(--tone) 0 var(--fill), var(--track-unfilled) var(--fill) 100%);
+}
+html[dir="rtl"] .fsa-range[data-tone="simulated"]::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(to left, transparent 0 var(--fill), var(--track-unfilled) var(--fill) 100%),
+    repeating-linear-gradient(45deg, #fbbf24 0 4px, #d97706 4px 8px);
+}
+
+/* Inputs: Urdu typing reads right to left; email / URL / numbers stay LTR. */
+html[dir="rtl"] input:is([type="email"], [type="url"], [type="number"], [type="tel"], [type="password"]) {
+  direction: ltr;
+  text-align: right;
 }

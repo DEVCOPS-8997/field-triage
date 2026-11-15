@@ -15,10 +15,16 @@ from app.models.schemas import (
     RegionInfo,
 )
 from app.services import location_data as location_data_service
+from app.services import modis_ndvi
 from app.services import power_history
 from app.services.data_loader import DataLoader
 from app.services.explain import build_compare_response
-from app.services.location_profile import build_location_inputs, load_regions, resolve_region
+from app.services.location_profile import (
+    build_location_inputs,
+    current_rotation_note,
+    load_regions,
+    resolve_region,
+)
 from app.services.power_live import classify_now_conditions
 from app.services.rate_limit import location_rate_limit
 from app.services.rotation_engine import evaluate_rotations
@@ -51,6 +57,24 @@ def location_data(
         location=Location(lat=lat, lon=lon),
         providers=location_data_service.get_location_data(settings, lat, lon),
     )
+
+
+@router.get("/ndvi")
+def location_ndvi(
+    lat: float = Query(..., ge=-90.0, le=90.0),
+    lon: float = Query(..., ge=-180.0, le=180.0),
+    start: bool = Query(True, description="Start a background fetch if nothing is cached yet"),
+    settings: Settings = Depends(get_request_settings),
+) -> dict:
+    """MODIS NDVI status for a point: ready | running | failed | not_configured | disabled.
+
+    When ready, the per-pixel summary (monthly NDVI, 12-month climatology, bare days, latest value)
+    is included so the page can draw the greenness row without re-running the comparison.
+    """
+    st = modis_ndvi.status(settings, lat, lon, start=start)
+    if st["state"] == "ready":
+        st["summary"] = modis_ndvi.load_cached(settings, lat, lon)
+    return st
 
 
 @router.get("/region")
@@ -93,6 +117,14 @@ def compare_location(
         rotations=catalog.rotations,
         settings=settings,
     )
+    # MODIS NDVI: merge the cached per-pixel history if it exists, otherwise start fetching it in
+    # the background (the page polls GET /locations/ndvi and re-runs compare when it is ready).
+    bare_threshold = float(catalog.parameters.get("ndvi_bare_threshold", 0.2))
+    ndvi_cached = modis_ndvi.load_cached(settings, lat, lon)
+    if ndvi_cached:
+        modis_ndvi.apply_to_profile(inp.profile, ndvi_cached)
+    ndvi_status = modis_ndvi.status(settings, lat, lon, start=True, bare_threshold=bare_threshold)
+
     engine_result = evaluate_rotations(
         field=inp.field,
         profile=inp.profile,
@@ -103,6 +135,7 @@ def compare_location(
         scenario=payload.scenario,
         requested_rotation_ids=payload.rotation_ids,
         market_crops=catalog.market_crops(inp.region.get("country_iso3")),
+        constraints=payload.constraints,
     )
     country_name = (
         ((catalog.market or {}).get("countries") or {}).get(inp.region.get("country_iso3") or "", {}).get("name")
@@ -121,10 +154,17 @@ def compare_location(
         country_name=country_name,
         region_name=inp.region["name"],
     )
-    # Only report sources this analysis actually tried. SMAP / MODIS are not fetched for GPS points.
+    # Only report sources this analysis actually used. SMAP is not fetched for GPS points; MODIS is
+    # listed once its NDVI history has been merged.
     for key in ("smap", "modis"):
         if base.data_quality.get(key) == "unavailable":
             base.data_quality.pop(key, None)
+    if ndvi_status["state"] in ("running", "not_started"):
+        warnings_ndvi = "Satellite greenness (MODIS NDVI) for this spot is still downloading; bare-soil months use crop calendars until it is ready."
+    elif ndvi_status["state"] in ("failed", "not_configured"):
+        warnings_ndvi = "Satellite greenness (MODIS NDVI) could not be loaded for this spot, so bare-soil months come from crop calendars."
+    else:
+        warnings_ndvi = None
     if base.income_status and base.income_status.get("scored"):
         base.data_quality["faostat"] = "observed"
 
@@ -150,6 +190,20 @@ def compare_location(
         )
     if inp.history.warning:
         warnings.append(inp.history.warning)
+    note = current_rotation_note(
+        region_id=inp.region["region_id"], rotations=catalog.rotations,
+        current_crop=None if payload.current_rotation_id else payload.current_crop,
+        chosen_id=inp.field.current_rotation_id,
+    )
+    if note:
+        warnings.append(note)
+    if warnings_ndvi:
+        warnings.append(warnings_ndvi)
+    if inp.region.get("resolved_by") == "file_order":
+        warnings.append(
+            f"This point is near a provincial border and the province could not be confirmed online; "
+            f"{inp.region['name']} crop calendars are used. Tell us if your field is in another province."
+        )
 
     # Current conditions: last 30 days of the same live POWER record (POWER publishes with ~5 days lag).
     now_metrics = dict(inp.profile.now)
@@ -189,6 +243,7 @@ def compare_location(
             "stale": inp.history.source == "stale_cache",
             "power_parameters": list(power_history.POWER_PARAMETERS),
             "geospatial": inp.location_data,
+            "ndvi": {**ndvi_status, "merged": bool(ndvi_cached)},
         },
         profile=inp.profile,
         now_status=now_status,

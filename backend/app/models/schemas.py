@@ -54,6 +54,7 @@ class MonthRecord(_ContractBaseModel):
     smap_rootzone_m3m3: Optional[float] = None
     ndvi_mean: Optional[float] = None
     eto_mm: Optional[float] = None  # FAO-56 reference evapotranspiration, monthly total (live POWER only)
+    heavy_rain_days_ge_25mm: Optional[int] = None  # days with >= 25 mm rain (daily POWER only)
 
 
 class FieldProfile(_ContractBaseModel):
@@ -114,6 +115,48 @@ class Scenario(_ContractBaseModel):
     temp_delta_c: float = Field(0.0, ge=0.0, le=4.0)
 
 
+EquipmentId = Literal[
+    "seed_drill",          # line sowing of small seeds (wheat, lentil, canola, ...)
+    "combine_harvester",   # grain harvest by machine
+    "rice_transplanting",  # puddling + transplant crew or machine
+    "picking_labour",      # many hand pickings (cotton, chilli, vegetables)
+    "orchard_commitment",  # land committed to trees for 5+ years
+    "daily_market_access", # perishable produce sold within days (vegetables, melons)
+]
+
+
+class FarmConstraints(_ContractBaseModel):
+    """Farmer limits in real units. The client converts units (inches, acre-feet, m3, tubewell
+    hours, PKR/acre) before sending. None means "not given" and is never treated as zero."""
+
+    # Irrigation water the farmer can apply per crop season, depth over the field (mm).
+    # When given it replaces the irrigation tier's assumed amount in the water balance.
+    water_available_mm: Optional[float] = Field(None, ge=0.0, le=3000.0)
+    # Minimum acceptable gross crop value per hectare per year (USD; client converts from PKR/acre).
+    min_income_usd_ha: Optional[float] = Field(None, ge=0.0)
+    # Risk tolerance: how many failed seasons out of 10 the farmer can accept (0..10).
+    max_bad_seasons_in_10: Optional[int] = Field(None, ge=0, le=10)
+    # Equipment / labour / commitments the farmer does NOT have.
+    unavailable_equipment: list[EquipmentId] = Field(default_factory=list)
+
+
+class FarmMonth(_ContractBaseModel):
+    """One calendar month of a rotation's typical year ("Your farm's year")."""
+
+    month: int = Field(..., ge=1, le=12)
+    crops: list[str] = Field(default_factory=list)  # crop names on the field this month
+    cover_crop: bool = False  # True when the only crop is the cover crop
+    bare: bool = False  # no living crop in this month
+    stage: Optional[str] = None  # sowing | growing | flowering | harvest (main crop)
+    heat_risk: Optional[float] = None  # share of past years with heat above the crop's limit (0..1)
+    frost_risk: Optional[float] = None  # share of past years with frost while a frost-sensitive crop grows
+    dry_risk: Optional[float] = None  # share of past years where crop water demand exceeded rain
+    heavy_rain_risk: Optional[float] = None  # share of past years with >=1 day of rain >= 25 mm
+    erosion_alert: bool = False  # bare AND heavy rain likely
+    ndvi: Optional[float] = None  # observed MODIS greenness for this calendar month (site, not rotation)
+    opportunity: bool = False  # bare, not too hot/cold/dry: window for a short or cover crop
+
+
 class CompareRequest(_ContractBaseModel):
     field_id: str
     priorities: Priorities = Field(default_factory=Priorities)
@@ -162,6 +205,15 @@ class RotationScore(_ContractBaseModel):
     evidence: list[EvidenceItem]
     insights: list[Insight] = Field(default_factory=list)
     annual_value_usd_ha: Optional[float] = None
+    # Deterministic shortlist: current rotation + best option of each strategy type that fits.
+    shortlisted: bool = True
+    shortlist_reason: Optional[str] = None  # e.g. "Your current rotation", "Best water-saving option"
+    fits_constraints: bool = True
+    constraint_failures: list[str] = Field(default_factory=list)  # plain sentences, one per failed limit
+    farm_year: list[FarmMonth] = Field(default_factory=list)  # 12 entries, January..December
+    key_moments: list[str] = Field(default_factory=list)  # 2-3 plain sentences about the farm year
+    mean_water_need_mm: Optional[float] = None  # average seasonal crop water demand per year (mm)
+    mean_irrigation_gap_mm: Optional[float] = None  # average shortfall the farmer must irrigate (mm)
 
 
 class CompareResponse(_ContractBaseModel):
@@ -173,6 +225,8 @@ class CompareResponse(_ContractBaseModel):
     disclaimer: str
     # {"scored": bool, "note": str, "source": str, "source_url": str, "missing": [crop names]}
     income_status: Optional[dict] = None
+    total_candidates: Optional[int] = None  # rotations scored in the province (shortlist is a subset)
+    constraints_applied: Optional[dict] = None  # echo of the FarmConstraints used
 
 
 # Additional auxiliary endpoint response schemas (non-conflicting with Section 6 frozen contracts)
@@ -205,6 +259,7 @@ class LocationCompareRequest(_ContractBaseModel):
     priorities: Priorities = Field(default_factory=Priorities)
     scenario: Scenario = Field(default_factory=Scenario)
     rotation_ids: Optional[list[str]] = None
+    constraints: FarmConstraints = Field(default_factory=FarmConstraints)
 
 
 class LocationInfo(_ContractBaseModel):

@@ -2,7 +2,7 @@
 "validated":false,
 "status":"illustrative",
 "irrigation_mm":{"none":0,"limited":200,"reliable":800},
-"heat_buckets_c":[30,34,38,42],
+"heat_buckets_c":[24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49],
 "viable_water_fraction":0.6,
 "viable_water_fraction_by_drought_tolerance":{"1":0.75,"2":0.65,"3":0.6,"4":0.5,"5":0.45},
 "soil_water":{"start_fraction":0.5,"max_root_depth_cm":150},
@@ -16,5 +16,7 @@
 "pest_break_same_family":20,
 "pest_break_diff_family":100,
 "confidence":{"high_coverage":0.8,"medium_coverage":0.5,"high_min_years":10},
-"now":{"dry_rain_14d_mm":5,"heat_watch_c":35,"heat_stress_c":40,"rootzone_dry_m3m3":0.15,"rootzone_wetness_dry":0.3,"ndvi_low":0.25}
+"now":{"dry_rain_14d_mm":5,"heat_watch_c":35,"heat_stress_c":40,"rootzone_dry_m3m3":0.15,"rootzone_wetness_dry":0.3,"ndvi_low":0.25},
+"farm_year":{"erosion_heavy_rain_risk":0.3,"opportunity_max_tmax_c":40,"opportunity_max_frost_share":0.0,"key_moment_heat_risk":0.3,"key_moment_heavy_rain_risk":0.3,"key_moment_dry_risk":0.5},
+"equipment_needs":{"status":"illustrative","note":"What each crop usually needs beyond ordinary tillage, for the farmer's 'I don't have' list. Crop entries override type entries. Illustrative, not validated with extension services.","by_type":{"fruit":["orchard_commitment"],"nut":["orchard_commitment"],"vegetable":["daily_market_access"]},"by_crop":{"wheat":["seed_drill"],"barley":["seed_drill"],"lentil":["seed_drill"],"canola":["seed_drill"],"rapeseed_mustard":["seed_drill"],"linseed":["seed_drill"],"rice":["rice_transplanting"],"cotton":["picking_labour"],"red_chilli":["picking_labour"],"tomato":["daily_market_access","picking_labour"],"okra":["daily_market_access","picking_labour"],"brinjal":["daily_market_access","picking_labour"],"bitter_gourd":["daily_market_access","picking_labour"],"bottle_gourd":["daily_market_access","picking_labour"],"cucumber":["daily_market_access","picking_labour"],"watermelon":["daily_market_access"],"muskmelon":["daily_market_access"],"strawberry":["daily_market_access","picking_labour"],"potato":[],"onion":[]}}
 }

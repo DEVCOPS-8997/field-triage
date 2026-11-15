@@ -26,6 +26,7 @@ from app.models.schemas import (
     Scenario,
 )
 from app.services.data_loader import PILLAR_TO_METADATA_ID
+from app.services.farm_year import build_key_moments
 from app.services.rotation_engine import (
     EngineComparisonResult,
     PillarCoverageReport,
@@ -247,24 +248,46 @@ def _build_benefits_and_risks(
 
     # 3. Nitrogen from legumes ---------------------------------------------------------------
     crop_ids = list(ev.sequence_crop_ids) + ([ev.cover_crop_id] if ev.cover_crop_id else [])
-    legumes = [crops_by_id[c] for c in crop_ids if c in crops_by_id and crops_by_id[c].get("type") in ("legume", "fodder") and crops_by_id[c].get("n_fix_sources")]
+    legumes = [
+        crops_by_id[c] for c in crop_ids
+        if c in crops_by_id and (crops_by_id[c].get("n_fix_sources") or float(crops_by_id[c].get("n_fix_kg_ha") or 0) > 0)
+    ]
     for crop in legumes:
         n = float(crop.get("n_fix_kg_ha") or 0)
         srcs = crop.get("n_fix_sources") or []
-        src = (srcs[0]["label"], srcs[0].get("url")) if srcs else None
+        src = (srcs[0]["label"], srcs[0].get("url")) if srcs else ("Field Shift crop catalog (uncited estimate)", None)
         if n > 0:
             bags = n / UREA_N_SHARE / UREA_BAG_KG
             rng = crop.get("n_fix_range_kg_ha")
             rng_txt = f" Field studies found {rng[0]}-{rng[1]} kg." if isinstance(rng, list) else ""
+            est_txt = "" if srcs else " This figure is a catalog estimate without a cited field study."
             out.append(_ins(
                 "benefit", "nitrogen", f"{crop['name']} feeds the soil with nitrogen",
                 f"{crop['name']} leaves about {n:.0f} kg of nitrogen per hectare ({n * HA_PER_ACRE:.0f} kg per acre) "
-                f"for the next crop, roughly {bags:.1f} bags of urea per hectare you may be able to save.{rng_txt} "
+                f"for the next crop, roughly {bags:.1f} bags of urea per hectare you may be able to save.{rng_txt}{est_txt} "
                 "Confirm with a soil test before cutting fertiliser.",
                 src,
             ))
+            if not srcs:
+                out.append(_ins(
+                    "gap", "nitrogen", f"{crop['name']} nitrogen figure is not cited",
+                    f"The {n:.0f} kg/ha nitrogen value for {crop['name']} has no published field study attached yet.",
+                    src,
+                ))
         else:
             out.append(_ins("check", "nitrogen", f"{crop['name']} adds little nitrogen overall", str(crop.get("n_fix_note", "")), src))
+
+    # Calendars borrowed from a neighbouring province ------------------------------------------
+    for cid in crop_ids:
+        crop = crops_by_id.get(cid) or {}
+        src_region = (crop.get("calendar_borrowed") or {}).get(field.region_id)
+        if src_region:
+            out.append(_ins(
+                "check", "farm", f"{crop.get('name', cid)} sowing dates come from a neighbouring province",
+                f"There is no {crop.get('name', cid)} calendar for this province yet, so the {src_region.replace('pk_', '').title()} "
+                "sowing and harvest months are used. Check the local sowing window with your extension office.",
+                SRC_CALENDAR,
+            ))
     if not legumes:
         out.append(_ins(
             "risk", "nitrogen", "No crop in this rotation adds nitrogen",
@@ -354,6 +377,35 @@ def _build_benefits_and_risks(
 
 
 # ---------------------------------------------------------------------------------------------
+# Farmer limits (FarmConstraints)
+# ---------------------------------------------------------------------------------------------
+CONSTRAINT_TITLES: dict[str, str] = {
+    "water": "Needs more water than you have",
+    "income": "Earns less than your target",
+    "risk": "Fails more often than you can accept",
+    "equipment": "Needs something you do not have",
+}
+
+
+def _build_constraint_insights(ev: RotationEvaluation, engine_result: EngineComparisonResult) -> list[Insight]:
+    out = [
+        _ins("risk", "farm", CONSTRAINT_TITLES.get(kind, "Does not fit your limits"), sentence, SRC_FARMER)
+        for kind, sentence in ev.constraint_failures
+    ]
+    c = engine_result.constraints
+    if ev.income_unchecked and c is not None and c.min_income_usd_ha is not None:
+        missing = list(ev.market_missing)
+        why = f"FAOSTAT has no recent price or yield for {_join(missing)}" if missing else "Crop sales could not be worked out"
+        out.append(_ins(
+            "gap", "income", "Income could not be checked against your target",
+            f"{why}, so this rotation was not checked against your target of ${c.min_income_usd_ha:,.0f} per hectare a year. "
+            "Check prices at your local market.",
+            SRC_FAOSTAT,
+        ))
+    return out
+
+
+# ---------------------------------------------------------------------------------------------
 # Data gaps (what the analysis could not see) - dynamic per location and rotation
 # ---------------------------------------------------------------------------------------------
 def _build_gaps(
@@ -432,11 +484,15 @@ def _build_checks(
             f"Scores assume {_join(dates)}, typical for {region_name or 'this region'}. Different dates change the heat, frost and water results.",
             SRC_CALENDAR,
         ))
-    irr_mm = float(parameters["irrigation_mm"][field.irrigation])
+    irr_mm = float(ev.irrigation_mm)
+    tier_mm = float(parameters["irrigation_mm"][field.irrigation])
+    if irr_mm != tier_mm:
+        water_txt = f"You said you can give about {irr_mm:,.0f} mm of irrigation water per crop season, and that amount is used here."
+    else:
+        water_txt = f"You chose irrigation '{field.irrigation}', which adds {irr_mm:.0f} mm of water per season in this analysis."
     checks.append(_ins(
         "check", "water", "Confirm your water supply",
-        f"You chose irrigation '{field.irrigation}', which adds {irr_mm:.0f} mm of water per season in this analysis."
-        + (" Canal or tubewell water you do have would make shortages smaller." if irr_mm == 0 else ""),
+        water_txt + (" Canal or tubewell water you do have would make shortages smaller." if irr_mm == 0 else ""),
         SRC_FARMER,
     ))
     if profile.data_mode == "observed" and profile.monthly:
@@ -686,7 +742,21 @@ def build_compare_response(
         )
         gaps = _build_gaps(ev, profile, field, engine_result.coverage_report, income_status)
         checks = _build_checks(ev, field, profile, parameters, engine_result.coverage_report, crops_by_id, region_name)
+        farm = _build_constraint_insights(ev, engine_result)
+        farm_risks = [i for i in farm if i.kind == "risk"]
+        farm_gaps = [i for i in farm if i.kind == "gap"]
+        br = farm_risks + br
+        gaps = gaps + farm_gaps
         insights = br + gaps + checks
+        key_moments = (
+            build_key_moments(
+                ev.farm_year_result,
+                parameters,
+                include_satellite=ev.is_existing and profile.data_quality.get("modis") == "observed",
+            )
+            if ev.farm_year_result is not None
+            else []
+        )
         rotation_scores.append(
             RotationScore(
                 rotation_id=ev.rotation_id,
@@ -707,6 +777,14 @@ def build_compare_response(
                 evidence=_build_evidence(ev, field, profile, crops_by_id, market_crops, income_scored, existing.label),
                 insights=insights,
                 annual_value_usd_ha=ev.annual_value_usd_ha if income_scored else None,
+                shortlisted=ev.shortlisted,
+                shortlist_reason=ev.shortlist_reason,
+                fits_constraints=ev.fits_constraints,
+                constraint_failures=[sentence for _kind, sentence in ev.constraint_failures],
+                farm_year=list(ev.farm_year),
+                key_moments=key_moments,
+                mean_water_need_mm=ev.mean_water_need_mm,
+                mean_irrigation_gap_mm=ev.mean_irrigation_gap_mm,
             )
         )
 
@@ -723,6 +801,10 @@ def build_compare_response(
             scenario=scenario,
         ),
         income_status=income_status,
+        total_candidates=engine_result.total_candidates or len(engine_result.evaluations),
+        constraints_applied=(
+            engine_result.constraints.model_dump(mode="json") if engine_result.constraints is not None else None
+        ),
     )
 
 

@@ -28,6 +28,15 @@ from app.services.power_live import clear_power_live_cache  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
+def _offline_reverse_geocode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests never call OpenStreetMap: overlapping provinces resolve by regions.json file order."""
+    monkeypatch.setattr("app.services.admin_region.lookup_state", lambda settings, lat, lon: None)
+    # MODIS NDVI providers stay offline too: ORNL unreachable, no Earthdata login -> not_configured.
+    monkeypatch.setattr("app.services.modis_ndvi.ornl_reachable", lambda settings: False)
+    monkeypatch.setattr("app.services.modis_ndvi.appeears_configured", lambda settings: False)
+
+
+@pytest.fixture(autouse=True)
 def _reset_service_caches() -> Any:
     """Ensure every test runs with clean static-catalog and live-POWER caches."""
     clear_data_cache()

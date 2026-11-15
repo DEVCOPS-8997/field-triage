@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react'
 import { Layers, Mountain } from 'lucide-react'
 import type { GeoProvider, FieldProfile } from '../../types/api'
 import { Badge, Card } from '../../lib/ui4/primitives'
 import { cx, fg, surface, tabular, type } from '../../lib/ui4/cls'
 import { fmt, num } from './shared'
+import { Term } from '../ui/Term'
 
 const SAND = '#e9c46a'
 const SILT = '#c08552'
@@ -25,7 +27,7 @@ function slopeNote(s: number | null): string {
   return 'steep: high erosion risk'
 }
 
-function Row({ label, value, note }: { label: string; value: string; note?: string }) {
+function Row({ label, value, note }: { label: ReactNode; value: string; note?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-t border-[color:var(--color-glass-border,rgba(190,242,220,0.16))] py-2">
       <dt className={cx(type.label, fg.fg2)}>{label}</dt>
@@ -119,7 +121,7 @@ export default function SiteConditions({
           )}
         </dl>
         <p className={cx('m-0 text-[12px]', fg.fg3)}>
-          ISRIC SoilGrids v2.0, 0 to 30 cm, 250 m modelled estimate
+          ISRIC SoilGrids v2.0, 0 to 30 cm, 250 m modelled estimate (one value per <Term id="grid_cell">grid cell</Term>)
           {soilProvider?.sample_note && soilProvider.sample_note !== 'exact point' ? ` (${soilProvider.sample_note})` : ''}.
         </p>
       </Card>
@@ -154,7 +156,7 @@ export default function SiteConditions({
           )}
         </div>
         <dl className="m-0">
-          {slope !== null && <Row label="Erosion outlook" value={slopeNote(slope).split(':')[0]} note={slopeNote(slope).split(':')[1]?.trim()} />}
+          {slope !== null && <Row label={<Term id="erosion_risk">Erosion outlook</Term>} value={slopeNote(slope).split(':')[0]} note={slopeNote(slope).split(':')[1]?.trim()} />}
           {num(terrainProvider?.local_relief_m) !== null && (
             <Row label="Local relief (≈330 m window)" value={`${fmt(terrainProvider!.local_relief_m, 1)} m`} />
           )}

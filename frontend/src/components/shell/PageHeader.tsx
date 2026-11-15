@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { buttonClasses } from '../ui/buttonStyles'
 import { cn } from '../ui/cn'
+import { useI18n } from '../../lib/i18n'
 
 export interface PageHeaderProps {
   title: ReactNode
@@ -26,13 +27,14 @@ export interface PageHeaderProps {
   className?: string
 }
 
-export function PageHeader({ title, eyebrow, subtitle, trailing, backTo, backLabel = 'Overview', className }: PageHeaderProps) {
+export function PageHeader({ title, eyebrow, subtitle, trailing, backTo, backLabel, className }: PageHeaderProps) {
+  const { t } = useI18n()
   return (
     <header data-component="PageHeader" className={cn('mb-6 lg:mb-12', className)}>
       {backTo && (
-        <Link to={backTo} className={cn(buttonClasses('ghost'), '-ml-4 mb-2')}>
+        <Link to={backTo} className={cn(buttonClasses('ghost'), '-ms-4 mb-2')}>
           <ArrowLeft size={20} strokeWidth={1.75} aria-hidden />
-          {backLabel}
+          {backLabel ?? t('nav.overview')}
         </Link>
       )}
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">

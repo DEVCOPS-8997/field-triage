@@ -1,0 +1,481 @@
+/**
+ * English dictionary (source of truth for keys).
+ *
+ * Conventions
+ * - Group by screen or component: `nav`, `overview`, `account`, `methodology`, `results`, ...
+ *   Shared words go in `common`; crop / season / unit words in `glossary`.
+ * - camelCase leaf names that say what the text is (`title`, `subtitle`, `emptyHint`, `ariaLabel`).
+ * - Interpolation: `{name}`. Plurals: `key_one` / `key_other`, read with `tn('group.key', count)`.
+ * - Keep data (numbers, units, codes such as NDVI or SMAP) out of sentences where possible and pass
+ *   them in as variables so they can be wrapped in <Ltr>.
+ * Every key added here should get an Urdu entry in ur.ts (missing ones fall back to English).
+ */
+import analysisEn from './sections/analysis.en'
+import panelsEn from './sections/panels.en'
+import fieldsEn from './sections/fields.en'
+
+const en = {
+  common: {
+    appName: 'Field Shift',
+    appTagline: 'Advisor',
+    appFullName: 'Field Shift Advisor',
+    unavailable: 'unavailable',
+    loading: 'Loading…',
+    dismiss: 'Dismiss',
+    close: 'Close',
+    copied: 'Copied',
+    analyze: 'Analyze',
+    edit: 'Edit',
+    add: 'Add',
+    back: 'Back',
+    save: 'Save',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    retry: 'Try again',
+    showMore: 'Show more',
+    showLess: 'Show less',
+    score: 'Score',
+    scoreOutOf: '{label}: {value} out of 100',
+    scoreUnavailable: '{label}: unavailable',
+    total: 'Total {value}',
+    englishOnly: 'Detailed explanations are in English for now.',
+    areaHaAcres: '{ha} ha ({acres} acres)',
+    areaHaDotAcres: '{ha} ha · {acres} acres',
+    years_one: '{count} year',
+    years_other: '{count} years',
+  },
+
+  lang: {
+    groupLabel: 'Language / زبان',
+    english: 'English',
+    urdu: 'Urdu',
+  },
+
+  nav: {
+    primary: 'Primary',
+    overview: 'Overview',
+    myFields: 'My fields',
+    signIn: 'Sign in',
+    methodology: 'Methodology',
+    selectFieldFirst: 'Select a field first',
+    createAccount: 'Create account',
+    saveFieldsHint: 'to save your fields',
+    signOut: 'Sign out',
+    skipToMain: 'Skip to main content',
+    brandHome: 'Field Shift Advisor, overview',
+    accountOf: 'Account: {name}',
+    createOrSignIn: 'Create account or sign in',
+  },
+
+  disclaimer: {
+    ariaLabel: 'Disclaimer',
+    text: 'Supports farmers and advisers; it does not replace them.',
+  },
+
+  quality: {
+    observed: 'observed',
+    observedTitle: 'Measured by a satellite or sensor',
+    derived: 'derived',
+    derivedTitle: 'Calculated from observed data',
+    demo: 'demo',
+    demoTitle: 'Synthetic demo data, not a measurement',
+    unavailable: 'unavailable',
+    unavailableTitle: 'No data for this value',
+  },
+
+  illustrative: {
+    label: 'Illustrative',
+    tooltip: 'Scoring thresholds are not yet validated against local references (validated: false).',
+  },
+
+  provenance: {
+    ariaLabel: 'Data provenance',
+    demoData: 'Demo data',
+    observedNasa: 'Observed NASA data',
+    demoTitle: 'Synthetic demo data, not a measurement',
+    observedTitle: 'Values come from NASA Earth observations',
+    qualityBySource: 'Data quality by source',
+    periodCovered: 'Period covered: ',
+    periodRange: '{start} to {end}',
+    unknownStart: 'unknown start',
+    unknownEnd: 'unknown end',
+    generated: 'Generated {date}',
+    dataSources: 'Data sources',
+    sourceSoil: 'Soil',
+    sourceTerrain: 'Terrain',
+  },
+
+  slider: {
+    simulated: 'Simulated conditions, not a NASA forecast',
+  },
+
+  mapSearch: {
+    groupCoordinates: 'Coordinates',
+    groupFields: 'Pilot fields',
+    groupRegions: 'Pilot regions',
+    groupPlaces: 'Places',
+    inputLabel: 'Search places, coordinates, regions or fields',
+    placeholder: 'Search address, town, region or lat, lon',
+    clear: 'Clear search',
+    suggestions: 'Search suggestions',
+    minChars: 'Type at least 3 letters to search places.',
+    searching: 'Searching places…',
+    error: 'Place search is unavailable right now. Fields, regions and coordinates still work.',
+    noMatches: 'No matches. Try a town, district or "lat, lon".',
+    goToPointSwapped: 'Read as longitude, latitude. Go to this point',
+    goToPoint: 'Go to this point and look up the address',
+    pilotTag: 'Pilot',
+    pilotFieldCount_one: '{count} pilot field',
+    pilotFieldCount_other: '{count} pilot fields',
+    kind: {
+      house: 'Address',
+      building: 'Building',
+      street: 'Street',
+      locality: 'Locality',
+      district: 'District',
+      city: 'City',
+      town: 'Town',
+      village: 'Village',
+      county: 'County / district',
+      state: 'State / province',
+      country: 'Country',
+      place: 'Place',
+    },
+  },
+
+  searchPin: {
+    droppedPin: 'Dropped pin',
+    selectedPlace: 'Selected place',
+    clearPin: 'Clear search pin',
+    lookingUp: 'Looking up address',
+    lookupError: 'Address lookup is unavailable right now. The coordinates below are exact.',
+    near: 'Near',
+    street: 'Street',
+    region: 'Region',
+    postcode: 'Postcode',
+    noAddress: 'No address found here (open water or unmapped area).',
+    copyLatLon: 'Copy lat, lon',
+    swapped: 'Your input was read as longitude, latitude.',
+    analyze: 'Analyze this location',
+    analyzeHint: "Uses NASA POWER climate history for this point's grid cell (supported regions only).",
+    nearest: 'Nearest pilot field: {field} ({region}), {distance} away.',
+    farAway: 'No pilot field is close to this spot. Rotation scores exist only for the 8 demo fields.',
+    goTo: 'Go to {id}',
+  },
+
+  overview: {
+    welcome: 'Welcome, {name}',
+    titleGuest: 'Find better crop rotations',
+    subtitleUser: 'Pick one of your fields, or search any place on the map.',
+    subtitleGuest:
+      'Search any place, or drop a pin, to compare crop rotations using 20 years of NASA weather data.',
+    mapLabel: 'Map',
+    savedOutlined: 'Your saved fields are outlined in green.',
+    howToStart: 'How to start',
+    checkAnyPlace: 'Check any place',
+    stepSearch: 'Search a village or town, or use your device location.',
+    stepPin: 'Click the map to drop a pin, then press Analyze.',
+    ownFieldsPitch:
+      'Want advice for your own fields? Create a free account, mark each field on the map and we measure its exact size.',
+    myFields: 'My fields',
+    fieldCount_one: '{count} field',
+    fieldCount_other: '{count} fields',
+    loadingFields: 'Loading your fields…',
+    addFirst: 'Add your first field',
+    addFirstHint: 'Draw it on the map; we measure the area.',
+  },
+
+  account: {
+    notConfiguredTitle: 'Accounts are not set up yet',
+    notConfiguredBody:
+      'Saving fields needs a Supabase project. Add {vars} to {file} (see {readme}). Searching any location still works without an account.',
+    yourAccount: 'Your account',
+    signedInAs: 'Signed in as {name} ({email}).',
+    goToMyFields: 'Go to my fields',
+    createTitle: 'Create your account',
+    signInTitle: 'Sign in',
+    subtitle: 'You only need an account to save your own fields. Searching any location works without one.',
+    benefitMark: 'Mark each field on the map as a free shape, rectangle or circle.',
+    benefitMeasure: 'We measure its exact area (square metres, hectares, acres) and the length of every side.',
+    benefitPrivate: 'Your fields are private to your account.',
+    checkEmail: 'Check your email',
+    confirmSent: 'We sent a confirmation link to {email}. Open it, then come back and sign in.',
+    confirmedSignIn: 'I have confirmed, sign in',
+    actionLabel: 'Account action',
+    name: 'Your name',
+    email: 'Email',
+    password: 'Password',
+    passwordHint: 'At least 8 characters.',
+  },
+
+  fieldDetail: {
+    loading: 'Loading field {id}…',
+    errorTitle: 'Could not load this field',
+    errorBody: 'Field {id} was not found or its data did not load.',
+    backToOverview: 'Back to overview',
+    meta: '{region} · {soil} · irrigation: {irrigation}',
+    soilNA: 'soil n/a',
+    field: 'Field',
+    fieldN: 'Field {id}',
+    comparisonLabel: 'Rotation comparison',
+    illustrativeNote:
+      'Scores use illustrative thresholds. Adjust priorities and the scenario to see how the ranking changes.',
+    profileLabel: 'Score profile and current conditions',
+    climateTitle: 'Climate and vegetation ({years} years)',
+  },
+
+  methodology: {
+    eyebrow: 'How the tool works',
+    title: 'Methodology',
+    intro: 'The data sources, how scores are built, how far to trust them, and what the tool cannot do.',
+    onThisPage: 'On this page',
+    sections: {
+      howItWorks: 'How it works',
+      scoring: 'Scoring method',
+      dataSources: 'Data sources',
+      dataQuality: 'Data quality labels',
+      limitations: 'Limitations',
+      localExpertise: 'Where local expertise is needed',
+      disclaimer: 'Disclaimer',
+    },
+    how: {
+      p1: 'Field Shift compares crop rotations for a field using long-term NASA Earth observations, not just recent weather. A rotation is a multi-season choice, so each field gets a 10 to 20 year climate baseline.',
+      extractTitle: 'Extract.',
+      extractBody:
+        'An offline pipeline pulls, once per field: NASA POWER daily rain and temperature, SMAP L4 soil moisture, MODIS NDVI vegetation history, SoilGrids soil properties and SRTM terrain.',
+      profileTitle: 'Profile.',
+      profileBody:
+        'The raw series become a per-field profile: monthly records, climatology (rain totals and variability, trends, dry spells, heavy-rain days, frost dates, heat days, water deficit), the NDVI season curve with bare-soil days, soil and terrain.',
+      scoreTitle: 'Score.',
+      scoreBody:
+        "Each rotation is tested against every historical year of that profile, using crop characteristics, the farmer's inputs and the priorities you set.",
+      explainTitle: 'Explain.',
+      explainBody:
+        'Each result lists why it was suggested, the evidence, benefits, risks, data gaps and what needs local review.',
+      p2: 'The app reads these precomputed profiles, so a demo never depends on a live NASA call.',
+    },
+    scoring: {
+      intro: 'Every component is a score from 0 to 100.',
+      resilienceTitle: 'Resilience',
+      resilienceBody:
+        "The share of historical years and seasons in which the rotation stays viable: heat days within the crop's tolerance, no frost on frost-sensitive crops, and rain plus irrigation covering at least 60% of the crop's water need.",
+      waterTitle: 'Water',
+      waterBody: "How far rain and irrigation fall short of the crops' water needs, on average.",
+      soilTitle: 'Soil',
+      soilBody:
+        'Soil health follows the USDA NRCS soil health principles: months with a living crop in the field (from the crop calendars) and net nitrogen left by legumes (from cited field studies, for example 33 to 66 kg/ha for berseem). Erosion risk uses bare-soil time, Copernicus DEM slope and NASA POWER heavy-rain days. Pest break checks whether consecutive crops belong to different plant families (NRCS Conservation Crop Rotation, Code 328).',
+      incomeTitle: 'Income',
+      incomeBody:
+        "Expected crop sales per hectare per year: the country's average yield and farm-gate price from FAOSTAT (the latest 3 reported years, never older than 5 years), counting only the seasons in which the crop was viable at this location, divided by the rotation length in years. The best option scores 100. If any option lacks current FAOSTAT data, income is not scored for any of them and its weight is shared over the other three.",
+      overallTitle: 'Overall score',
+      overallBody: 'A weighted sum using your priority weights, which always add up to 1.00.',
+      rangeTitle: 'Uncertainty range',
+      rangeBody:
+        'The overall score is computed for each historical year separately. The range shown runs from the 10th percentile (low) to the 90th percentile (high) across those years. A wide range means the result depends a lot on what kind of year it is.',
+      confidenceTitle: 'Confidence',
+      confidenceBody:
+        'Coverage is the share of the five inputs (POWER, SMAP, MODIS, soil, terrain) that are available for the field.',
+      high: 'HIGH',
+      highBody: 'Coverage at least 0.8, at least 10 years of data, and validated scoring parameters.',
+      medium: 'MEDIUM',
+      mediumBody: 'Coverage at least 0.5.',
+      low: 'LOW',
+      lowBody: 'Anything else.',
+      validatedNote:
+        'While the scoring parameters are marked validated: false, confidence cannot reach HIGH and results carry an Illustrative badge.',
+    },
+    sources: {
+      intro: 'Only global datasets are used in the core, so the method works in any region.',
+      caption: 'Data sources: product, variable, units, resolution and time window',
+      colSource: 'Source',
+      colProduct: 'Product',
+      colVariable: 'Variable',
+      colUnits: 'Units',
+      colResolution: 'Resolution',
+      colWindow: 'Window',
+      productPowerDaily: 'Daily point API, community AG',
+      varRain: 'PRECTOTCORR (precipitation, bias-corrected)',
+      varTemp: 'T2M, T2M_MAX, T2M_MIN (air temperature at 2 m)',
+      varSoilMoisture: 'sm_surface, sm_rootzone (soil moisture)',
+      varNdvi: 'NDVI, EVI (vegetation index)',
+      varTerrain: 'elevation_m, slope_deg',
+      varSoil: 'clay, sand, soc, phh2o at 0–30 cm',
+      varImerg: 'precipitation (rainfall cross-check)',
+      unitsNdvi: 'Unitless (raw values × 0.0001)',
+      unitsTerrain: 'm, degrees',
+      resPower: 'About 0.5° × 0.625° grid (tens of km)',
+      resSmap: '9 km cell; 3-hourly values averaged to daily',
+      resModis: '250 m pixel; 16-day composites, interpolated to daily',
+      resSrtm: '30 m (1 arc-second)',
+      resSoil: '250 m',
+      resImerg: 'About 0.1° (about 10 km)',
+      winPowerRain: '2005 to latest (ends about 5 days before today)',
+      winPowerTemp: '2005 to latest',
+      winSmap: 'April 2015 to latest',
+      winModis: '2010 to latest',
+      winSrtm: 'Static (2000 mission)',
+      winStatic: 'Static',
+      winImerg: '2015 to latest, if available',
+      sourceSoilGrids: 'SoilGrids (ISRIC, not NASA)',
+      sourceImerg: 'NASA GPM IMERG (optional)',
+      gwetNote:
+        'If SMAP is unavailable, root-zone wetness may come from POWER GWETROOT instead. That value is MERRA-2 model output, not a SMAP measurement, and is labelled that way.',
+    },
+    quality: {
+      intro: 'Every number in the tool carries one of four labels.',
+      observed: 'Measured by a satellite or sensor (for example POWER rainfall, SMAP soil moisture, MODIS NDVI).',
+      derived: 'Calculated from observed data (for example trends, percentiles, bare-soil days, scores).',
+      demo: 'Synthetic demo data, not a measurement. Used so the tool can run without live NASA data.',
+      unavailable: 'No data exists for this value. The tool shows it as missing and lowers confidence.',
+      nullNote:
+        'A missing value (null) means there was no observation. It is never treated or shown as zero: zero rain and no rain record are different things.',
+      modeNote:
+        'The data mode (demo or observed) is shown on each field, together with the source and dates of the POWER, SMAP and MODIS values.',
+    },
+    limits: {
+      intro: 'Read the results with these limits in mind.',
+      smapTitle: 'SMAP soil moisture is a 9 km cell.',
+      smapBody:
+        'One value covers about 81 km², far larger than one field, so it cannot see differences between neighbouring fields.',
+      modisTitle: 'MODIS NDVI is a 250 m pixel.',
+      modisBody: 'Small or narrow fields share a pixel with roads, trees and neighbouring crops.',
+      ndviTitle: 'NDVI comes as 16-day composites.',
+      ndviBody:
+        'Daily values are interpolated between composites, so short events such as a quick harvest or a flood can be missed, and bare-soil days are estimates.',
+      boundariesTitle: 'Field boundaries are hand-drawn demo polygons,',
+      boundariesBody: 'not surveyed parcels. NASA does not supply farm boundaries.',
+      farmerTitle: 'Some fields are farmer input.',
+      farmerBody:
+        'The existing rotation, soil type, irrigation level and market access are entered, not measured, and are not checked by the tool.',
+      thresholdsTitle: 'Scoring thresholds are illustrative.',
+      thresholdsBody:
+        'Crop and scoring parameters are marked validated: false until checked against local references, so treat scores as a comparison aid, not a prediction.',
+      scenarioTitle: 'Scenario sliders are simulated, not forecasts.',
+      scenarioBody:
+        'The rain and temperature sliders rescale past years; they are not a NASA forecast or a climate projection.',
+      demoTitle: 'Demo mode uses synthetic data.',
+      demoBody: 'When the data mode reads demo, values are made up to show how the tool works and describe no real field.',
+      nowTitle: 'The Right now status is illustrative.',
+      nowBody: 'It uses simple thresholds on the last 30 days and is not an advisory.',
+    },
+    local: {
+      intro:
+        'Each rotation lists what needs local review. In general, check these with farmers, extension officers or agronomists before acting:',
+      soil: 'Actual soil condition, from a soil test, rather than a 250 m SoilGrids estimate.',
+      irrigation: 'Irrigation reliability, water rights and groundwater limits.',
+      market: 'Local market prices, contracts and access to buyers.',
+      pests: 'Pest, disease and weed pressure in the area, and suitable crop varieties.',
+      windows: 'Sowing and harvest windows for this season, labour and machinery.',
+      pixels: 'Any value that depends on a 9 km SMAP cell or a 250 m MODIS pixel.',
+      params: 'Scoring parameters that are still marked validated: false.',
+    },
+    disclaimerNote:
+      'The tool organises evidence so farmers and advisers can compare options. Decisions stay with the people who know the field.',
+  },
+
+  /* ---------------------------------------------------------------------------------------------
+   * Groups below are seeded for the screens other agents own. Extend them during the i18n sweep.
+   * ------------------------------------------------------------------------------------------- */
+  results: {
+    bestOption: 'Best option',
+    overallScore: 'Overall score',
+    rank: 'Rank {rank}',
+    compareRotations: 'Compare rotations',
+    whySuggested: 'Why this was suggested',
+    evidence: 'Evidence',
+    benefits: 'Benefits',
+    risks: 'Risks',
+    dataGaps: 'Data gaps',
+    needsLocalReview: 'Needs local review',
+    uncertaintyRange: 'Uncertainty range',
+    confidence: 'Confidence',
+    currentRotation: 'Your current rotation',
+    noResults: 'No rotations to show yet.',
+  },
+
+  inputs: {
+    irrigation: 'Irrigation',
+    soilType: 'Soil type',
+    marketAccess: 'Market access',
+    currentRotation: 'Current rotation',
+    fieldArea: 'Field area',
+    priorities: 'Your priorities',
+    scenario: 'Scenario',
+    rainfallChange: 'Rainfall change',
+    temperatureChange: 'Temperature change',
+    reset: 'Reset',
+  },
+
+  farmYear: {
+    rabi: 'Rabi (winter crop)',
+    kharif: 'Kharif (summer crop)',
+    sowing: 'Sowing',
+    harvest: 'Harvest',
+    fallow: 'Fallow',
+    months: {
+      jan: 'Jan',
+      feb: 'Feb',
+      mar: 'Mar',
+      apr: 'Apr',
+      may: 'May',
+      jun: 'Jun',
+      jul: 'Jul',
+      aug: 'Aug',
+      sep: 'Sep',
+      oct: 'Oct',
+      nov: 'Nov',
+      dec: 'Dec',
+    },
+  },
+
+  glossary: {
+    rotation: 'Crop rotation',
+    field: 'Field',
+    crop: 'Crop',
+    water: 'Water',
+    soil: 'Soil',
+    soilHealth: 'Soil health',
+    income: 'Income',
+    resilience: 'Resilience',
+    rainfall: 'Rainfall',
+    temperature: 'Temperature',
+    soilMoisture: 'Soil moisture',
+    vegetation: 'Vegetation (NDVI)',
+    drySpell: 'Dry spell',
+    heatDays: 'Heat days',
+    frost: 'Frost',
+    erosion: 'Erosion',
+    confidence: {
+      high: 'HIGH',
+      medium: 'MEDIUM',
+      low: 'LOW',
+    },
+    irrigation: {
+      none: 'none',
+      limited: 'limited',
+      reliable: 'reliable',
+    },
+    crops: {
+      wheat: 'Wheat',
+      cotton: 'Cotton',
+      rice: 'Rice',
+      maize: 'Maize',
+      sugarcane: 'Sugarcane',
+      berseem: 'Berseem',
+      mustard: 'Mustard',
+      canola: 'Canola',
+      chickpea: 'Chickpea (gram)',
+      lentil: 'Lentil',
+      mungbean: 'Mung bean',
+      sorghum: 'Sorghum',
+      potato: 'Potato',
+      sunflower: 'Sunflower',
+    },
+  },
+  // Per-section dictionaries (one file pair per sweep agent)
+  analysis: analysisEn,
+  panels: panelsEn,
+  fields: fieldsEn,
+}
+
+export default en

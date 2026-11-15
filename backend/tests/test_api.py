@@ -54,7 +54,7 @@ def test_catalog_and_regions(demo_settings: Settings) -> None:
     assert rots and all(r["region_id"] == "pk_punjab" for r in rots)
     assert not any("(current)" in r["label"] for r in rots)
     regions = client.get("/api/v1/regions").json()
-    assert {r["region_id"] for r in regions} == {"pk_punjab", "us_midwest"}
+    assert {r["region_id"] for r in regions} == {"pk_punjab", "pk_sindh", "pk_kp", "pk_balochistan"}
     assert all({"lat_min", "lat_max", "lon_min", "lon_max"} <= set(r["bbox"]) for r in regions)
 
 

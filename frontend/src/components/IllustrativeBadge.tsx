@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { TriangleAlert } from 'lucide-react'
 import { ILLUSTRATIVE_TOOLTIP } from '../lib/honesty/format'
 import { badgeBase, badgeTone, cx, surface, tx } from '../lib/ui5/styles'
+import { useI18n } from '../lib/i18n'
 
 export interface IllustrativeBadgeProps {
   /** Pass the parameters' `validated` flag; the badge hides when it is true. */
@@ -18,10 +19,12 @@ export interface IllustrativeBadgeProps {
  */
 export default function IllustrativeBadge({
   validated = false,
-  tooltip = ILLUSTRATIVE_TOOLTIP,
+  tooltip: tooltipProp,
   className,
 }: IllustrativeBadgeProps) {
   const tipId = useId()
+  const { lang, t } = useI18n()
+  const tooltip = tooltipProp ?? (lang === 'en' ? ILLUSTRATIVE_TOOLTIP : t('illustrative.tooltip'))
   if (validated) return null
 
   return (
@@ -33,7 +36,7 @@ export default function IllustrativeBadge({
         className={cx(badgeBase, badgeTone.warn, 'cursor-help')}
       >
         <TriangleAlert size={16} strokeWidth={1.75} aria-hidden="true" />
-        Illustrative
+        {t('illustrative.label')}
       </span>
       <span
         id={tipId}
@@ -43,7 +46,7 @@ export default function IllustrativeBadge({
           surface.radiusChip,
           tx.label,
           tx.fg,
-          'pointer-events-none invisible absolute left-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-32px)] p-2 font-normal opacity-0 transition-opacity duration-150',
+          'pointer-events-none invisible absolute start-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-32px)] p-2 font-normal opacity-0 transition-opacity duration-150',
           'group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100',
         )}
       >

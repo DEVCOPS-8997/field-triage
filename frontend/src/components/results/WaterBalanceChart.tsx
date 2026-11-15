@@ -5,6 +5,7 @@ import { CHART_COLORS, CHART_DEFAULTS } from '../../lib/charts/tokens'
 import { Card, LegendRow } from '../../lib/ui4/primitives'
 import { cx, fg, type } from '../../lib/ui4/cls'
 import { evidenceValue } from './shared'
+import { Term } from '../ui/Term'
 
 const SHORTFALL = '#fda4af'
 
@@ -36,7 +37,7 @@ export default function WaterBalanceChart({ rotations }: { rotations: RotationSc
 
   if (data.length === 0) {
     return (
-      <Card title="Water balance per season" titleId={titleId}>
+      <Card title={<Term id="water_balance">Water balance per season</Term>} titleId={titleId}>
         <p className={cx('m-0', type.body, fg.fg3)}>Water demand was not computed for these rotations.</p>
       </Card>
     )
@@ -47,10 +48,10 @@ export default function WaterBalanceChart({ rotations }: { rotations: RotationSc
     .join('. ')
 
   return (
-    <Card title="Water balance per season" titleId={titleId}>
+    <Card title={<Term id="water_balance">Water balance per season</Term>} titleId={titleId}>
       <p className={cx('-mt-2 m-0', type.label, fg.fg3)}>
-        Mean crop water demand per season (FAO-56 crop coefficients × reference ET) and how much of it rain, stored soil water
-        and your irrigation leave unmet.
+        Mean crop water demand per season (FAO-56 crop coefficients × reference <Term id="eto">ET</Term>) and how much of it{' '}
+        <Term id="effective_rain">effective rain</Term>, stored soil water and your irrigation leave unmet.
       </p>
       <LegendRow
         items={[

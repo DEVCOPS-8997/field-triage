@@ -1,6 +1,6 @@
 /**
  * SegmentedControl: pill radiogroup (e.g. Map | Satellite).
- * Roving tabindex; Left/Right/Up/Down move and select; Home/End jump.
+ * Roving tabindex; Left/Right/Up/Down move and select (Left/Right follow the reading direction); Home/End jump.
  *
  * Props
  * - label: string                               aria-label of the group (e.g. "Map style")
@@ -46,13 +46,17 @@ export function SegmentedControl<T extends string>({
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    // In RTL the options run right to left, so ArrowLeft means "next".
+    const rtl = getComputedStyle(e.currentTarget).direction === 'rtl'
+    const fwd = rtl ? 'ArrowLeft' : 'ArrowRight'
+    const back = rtl ? 'ArrowRight' : 'ArrowLeft'
     switch (e.key) {
-      case 'ArrowRight':
+      case fwd:
       case 'ArrowDown':
         e.preventDefault()
         move(current + 1)
         break
-      case 'ArrowLeft':
+      case back:
       case 'ArrowUp':
         e.preventDefault()
         move(current - 1)

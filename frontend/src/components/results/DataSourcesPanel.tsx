@@ -1,7 +1,9 @@
-import { ChevronDown, Database, TriangleAlert } from 'lucide-react'
+import { ChevronDown, Database, Loader2, TriangleAlert } from 'lucide-react'
 import type { LocationCompareResponse, Quality } from '../../types/api'
 import { Badge } from '../../lib/ui4/primitives'
 import { cx, fg, surface, type } from '../../lib/ui4/cls'
+import { Term } from '../ui/Term'
+import SatelliteVsGround from './SatelliteVsGround'
 
 const SOURCE_NAME: Record<string, string> = {
   power: 'NASA POWER climate',
@@ -10,7 +12,7 @@ const SOURCE_NAME: Record<string, string> = {
   soil: 'SoilGrids soil',
   terrain: 'Copernicus DEM terrain',
   smap: 'SMAP soil moisture',
-  modis: 'MODIS vegetation',
+  modis: 'MODIS NDVI greenness (250 m)',
   rotation_scores: 'Rotation scores',
   faostat: 'FAOSTAT yields and prices',
 }
@@ -28,6 +30,11 @@ export default function DataSourcesPanel({ data }: { data: LocationCompareRespon
   const cell = data.location.nasa_grid_cell
   // Only sources that actually fed this analysis; anything that returned nothing is a "data limit" instead.
   const used = Object.entries(data.data_quality).filter(([, q]) => q !== 'unavailable')
+  // MODIS NDVI is merged into the profile after the first answer; list it once it is in.
+  const modisMerged = data.profile?.data_quality?.modis === 'observed'
+  if (modisMerged && !used.some(([k]) => k === 'modis')) used.push(['modis', 'observed'])
+  const ndvi = dr.ndvi
+  const ndviRunning = ndvi?.state === 'running' && !modisMerged
   const income = data.income_status
   return (
     <div className="flex flex-col gap-3">
@@ -58,6 +65,12 @@ export default function DataSourcesPanel({ data }: { data: LocationCompareRespon
                 {SOURCE_NAME[k] ?? k}: {q}
               </Badge>
             ))}
+            {ndviRunning && (
+              <span role="status" className={cx('inline-flex h-7 items-center gap-1 rounded-full border border-dashed px-2 font-semibold', type.label, fg.fg2, 'border-[color:var(--color-glass-border,rgba(190,242,220,0.3))]')}>
+                <Loader2 size={14} aria-hidden="true" className="motion-safe:animate-spin" />
+                MODIS NDVI: downloading
+              </span>
+            )}
           </div>
           <dl className={cx('m-0 grid gap-x-6 gap-y-2 md:grid-cols-2', type.label)}>
             <div>
@@ -70,7 +83,9 @@ export default function DataSourcesPanel({ data }: { data: LocationCompareRespon
             </div>
             {cell && (
               <div>
-                <dt className={fg.fg3}>Climate grid cell</dt>
+                <dt className={fg.fg3}>
+                  Climate <Term id="grid_cell">grid cell</Term>
+                </dt>
                 <dd className={cx('m-0', fg.fg2)}>
                   {cell.size_deg}° cell centred at {cell.center_lat}, {cell.center_lon}
                 </dd>
@@ -80,6 +95,24 @@ export default function DataSourcesPanel({ data }: { data: LocationCompareRespon
               <div className="md:col-span-2">
                 <dt className={fg.fg3}>POWER parameters</dt>
                 <dd className={cx('m-0 font-mono text-[12px]', fg.fg2)}>{dr.power_parameters.join(', ')}</dd>
+              </div>
+            )}
+            {(modisMerged || ndviRunning) && (
+              <div>
+                <dt className={fg.fg3}>
+                  Vegetation <Term id="ndvi">NDVI</Term>
+                </dt>
+                <dd className={cx('m-0', fg.fg2)}>
+                  {modisMerged
+                    ? `MODIS 250 m, 16-day composites${
+                        ndvi?.summary?.period_start && ndvi.summary.period_end
+                          ? `, ${ndvi.summary.period_start.slice(0, 4)} to ${ndvi.summary.period_end.slice(0, 4)}`
+                          : ''
+                      }${ndvi?.summary?.n_composites_good ? ` (${ndvi.summary.n_composites_good} clear images)` : ''}${
+                        ndvi?.provider || ndvi?.summary?.provider ? `, via ${ndvi.provider ?? ndvi.summary?.provider}` : ''
+                      }.`
+                    : `Downloading MODIS satellite greenness for this spot${ndvi?.elapsed_s ? ` (${Math.round(ndvi.elapsed_s)} s so far)` : ''}. The charts update when it arrives.`}
+                </dd>
               </div>
             )}
             {(['soil', 'terrain'] as const).map((k) => {
@@ -115,6 +148,7 @@ export default function DataSourcesPanel({ data }: { data: LocationCompareRespon
           <p className={cx('m-0', type.label, fg.fg3)}>{data.location.data_resolution_note}</p>
         </div>
       </details>
+      <SatelliteVsGround data={data} tone="glass" />
     </div>
   )
 }

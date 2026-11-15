@@ -1,1 +1,782 @@
-{"field_id":"F01","scenario_applied":false,"rotations":[{"rotation_id":"R1_cotton_wheat","label":"Cotton – Wheat (current)","strategy_type":"existing","is_existing":true,"scores":{"water":44.8,"soil":48.1,"resilience":68.8,"income":72.5},"overall":58.6,"overall_low":53.4,"overall_high":63.8,"rank":3,"confidence":"LOW","why":["Mock: scores moderate on water because seasonal rain plus irrigation covers more of crop demand.","Mock: soil component stays low due to ground cover and organic matter effect."],"benefits":["Mock: reduces bare-field days after harvest","Mock: breaks the pest cycle"],"risks":["Mock: sowing window may be missed in a late-monsoon year","Mock: market price for the extra crop is uncertain"],"data_gaps":["Demo mode: all inputs are synthetic"],"needs_local_review":["Crop parameters are illustrative (validated: false)","Field boundary is a hand-drawn demo polygon"],"evidence":[{"variable":"rain_annual_mm_mean","value":190.2,"unit":"mm","source":"Synthetic (demo)","interpretation":"Mock annual rainfall used for the water score"},{"variable":"bare_days_est_mean","value":102,"unit":"days","source":"Synthetic (demo)","interpretation":"Mock days per year with NDVI below 0.2"}]},{"rotation_id":"R1_mungbean_wheat","label":"Mungbean – Wheat","strategy_type":"water_saving","is_existing":false,"scores":{"water":83.6,"soil":57.7,"resilience":74.7,"income":58.4},"overall":68.6,"overall_low":59.5,"overall_high":77.7,"rank":1,"confidence":"LOW","why":["Mock: scores high on water because seasonal rain plus irrigation covers more of crop demand.","Mock: soil component stays low due to ground cover and organic matter effect."],"benefits":["Mock: reduces bare-field days after harvest","Mock: breaks the pest cycle"],"risks":["Mock: sowing window may be missed in a late-monsoon year","Mock: market price for the extra crop is uncertain"],"data_gaps":["Demo mode: all inputs are synthetic"],"needs_local_review":["Crop parameters are illustrative (validated: false)","Field boundary is a hand-drawn demo polygon"],"evidence":[{"variable":"rain_annual_mm_mean","value":190.2,"unit":"mm","source":"Synthetic (demo)","interpretation":"Mock annual rainfall used for the water score"},{"variable":"bare_days_est_mean","value":102,"unit":"days","source":"Synthetic (demo)","interpretation":"Mock days per year with NDVI below 0.2"}]},{"rotation_id":"R1_berseem_rice","label":"Berseem – Rice + cover","strategy_type":"soil_building","is_existing":false,"scores":{"water":56.1,"soil":82.9,"resilience":66.9,"income":66},"overall":68,"overall_low":55.3,"overall_high":80.7,"rank":2,"confidence":"LOW","why":["Mock: scores moderate on water because seasonal rain plus irrigation covers more of crop demand.","Mock: soil component improves due to ground cover and organic matter effect."],"benefits":["Mock: reduces bare-field days after harvest","Mock: breaks the pest cycle"],"risks":["Mock: sowing window may be missed in a late-monsoon year","Mock: market price for the extra crop is uncertain"],"data_gaps":["Demo mode: all inputs are synthetic"],"needs_local_review":["Crop parameters are illustrative (validated: false)","Field boundary is a hand-drawn demo polygon"],"evidence":[{"variable":"rain_annual_mm_mean","value":190.2,"unit":"mm","source":"Synthetic (demo)","interpretation":"Mock annual rainfall used for the water score"},{"variable":"bare_days_est_mean","value":102,"unit":"days","source":"Synthetic (demo)","interpretation":"Mock days per year with NDVI below 0.2"}]}],"data_mode":"demo","data_quality":{"power":"demo","smap":"demo","modis":"demo","soil":"demo","terrain":"demo"},"disclaimer":"Supports farmers and advisers; it does not replace them. Demo data shown."}
+{
+  "field_id": "F01",
+  "scenario_applied": false,
+  "rotations": [
+    {
+      "rotation_id": "R1_cotton_wheat",
+      "label": "Cotton – Wheat (current)",
+      "strategy_type": "existing",
+      "is_existing": true,
+      "scores": {
+        "water": 44.8,
+        "soil": 48.1,
+        "resilience": 68.8,
+        "income": 72.5
+      },
+      "overall": 58.6,
+      "overall_low": 53.4,
+      "overall_high": 63.8,
+      "rank": 3,
+      "confidence": "LOW",
+      "why": [
+        "Mock: scores moderate on water because seasonal rain plus irrigation covers more of crop demand.",
+        "Mock: soil component stays low due to ground cover and organic matter effect."
+      ],
+      "benefits": [
+        "Mock: reduces bare-field days after harvest",
+        "Mock: breaks the pest cycle"
+      ],
+      "risks": [
+        "Mock: sowing window may be missed in a late-monsoon year",
+        "Mock: market price for the extra crop is uncertain"
+      ],
+      "data_gaps": [
+        "Demo mode: all inputs are synthetic"
+      ],
+      "needs_local_review": [
+        "Crop parameters are illustrative (validated: false)",
+        "Field boundary is a hand-drawn demo polygon"
+      ],
+      "evidence": [
+        {
+          "variable": "rain_annual_mm_mean",
+          "value": 190.2,
+          "unit": "mm",
+          "source": "Synthetic (demo)",
+          "interpretation": "Mock annual rainfall used for the water score"
+        },
+        {
+          "variable": "bare_days_est_mean",
+          "value": 102,
+          "unit": "days",
+          "source": "Synthetic (demo)",
+          "interpretation": "Mock days per year with NDVI below 0.2"
+        }
+      ],
+      "farm_year": [
+        {
+          "month": 1,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0,
+          "frost_risk": 0.1,
+          "dry_risk": 0.6,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.54,
+          "opportunity": false
+        },
+        {
+          "month": 2,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0,
+          "frost_risk": 0.05,
+          "dry_risk": 0.5,
+          "heavy_rain_risk": 0.1,
+          "erosion_alert": false,
+          "ndvi": 0.62,
+          "opportunity": false
+        },
+        {
+          "month": 3,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "flowering",
+          "heat_risk": 0.05,
+          "frost_risk": 0,
+          "dry_risk": 0.55,
+          "heavy_rain_risk": 0.1,
+          "erosion_alert": false,
+          "ndvi": 0.52,
+          "opportunity": false
+        },
+        {
+          "month": 4,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "harvest",
+          "heat_risk": 0.3,
+          "frost_risk": 0,
+          "dry_risk": 0.8,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.25,
+          "opportunity": false
+        },
+        {
+          "month": 5,
+          "crops": [
+            "Cotton"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "sowing",
+          "heat_risk": 0.75,
+          "frost_risk": 0,
+          "dry_risk": 0.9,
+          "heavy_rain_risk": 0.1,
+          "erosion_alert": false,
+          "ndvi": 0.21,
+          "opportunity": false
+        },
+        {
+          "month": 6,
+          "crops": [
+            "Cotton"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0.8,
+          "frost_risk": 0,
+          "dry_risk": 0.7,
+          "heavy_rain_risk": 0.25,
+          "erosion_alert": false,
+          "ndvi": 0.29,
+          "opportunity": false
+        },
+        {
+          "month": 7,
+          "crops": [
+            "Cotton"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "flowering",
+          "heat_risk": 0.45,
+          "frost_risk": 0,
+          "dry_risk": 0.35,
+          "heavy_rain_risk": 0.55,
+          "erosion_alert": false,
+          "ndvi": 0.44,
+          "opportunity": false
+        },
+        {
+          "month": 8,
+          "crops": [
+            "Cotton"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "flowering",
+          "heat_risk": 0.3,
+          "frost_risk": 0,
+          "dry_risk": 0.3,
+          "heavy_rain_risk": 0.5,
+          "erosion_alert": false,
+          "ndvi": 0.55,
+          "opportunity": false
+        },
+        {
+          "month": 9,
+          "crops": [
+            "Cotton"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "harvest",
+          "heat_risk": 0.15,
+          "frost_risk": 0,
+          "dry_risk": 0.6,
+          "heavy_rain_risk": 0.2,
+          "erosion_alert": false,
+          "ndvi": 0.39,
+          "opportunity": false
+        },
+        {
+          "month": 10,
+          "crops": [
+            "Cotton"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "harvest",
+          "heat_risk": 0.05,
+          "frost_risk": 0,
+          "dry_risk": 0.85,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.26,
+          "opportunity": false
+        },
+        {
+          "month": 11,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "sowing",
+          "heat_risk": 0,
+          "frost_risk": 0,
+          "dry_risk": 0.8,
+          "heavy_rain_risk": 0,
+          "erosion_alert": false,
+          "ndvi": 0.42,
+          "opportunity": false
+        },
+        {
+          "month": 12,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0,
+          "frost_risk": 0.1,
+          "dry_risk": 0.7,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.48,
+          "opportunity": false
+        }
+      ],
+      "key_moments": [
+        "May and June are the riskiest months: in 3 of 4 past years young cotton faced heat above its limit.",
+        "Wheat flowers in March, when frost is rare here, so the winter crop is fairly safe.",
+        "The field is never left bare, but cotton needs water almost every month from May to October."
+      ],
+      "shortlisted": true,
+      "shortlist_reason": "Your current rotation",
+      "fits_constraints": true,
+      "constraint_failures": [],
+      "mean_water_need_mm": 1450,
+      "mean_irrigation_gap_mm": 1250,
+      "annual_value_usd_ha": 1400
+    },
+    {
+      "rotation_id": "R1_mungbean_wheat",
+      "label": "Mungbean – Wheat",
+      "strategy_type": "water_saving",
+      "is_existing": false,
+      "scores": {
+        "water": 83.6,
+        "soil": 57.7,
+        "resilience": 74.7,
+        "income": 58.4
+      },
+      "overall": 68.6,
+      "overall_low": 59.5,
+      "overall_high": 77.7,
+      "rank": 1,
+      "confidence": "LOW",
+      "why": [
+        "Mock: scores high on water because seasonal rain plus irrigation covers more of crop demand.",
+        "Mock: soil component stays low due to ground cover and organic matter effect."
+      ],
+      "benefits": [
+        "Mock: reduces bare-field days after harvest",
+        "Mock: breaks the pest cycle"
+      ],
+      "risks": [
+        "Mock: sowing window may be missed in a late-monsoon year",
+        "Mock: market price for the extra crop is uncertain"
+      ],
+      "data_gaps": [
+        "Demo mode: all inputs are synthetic"
+      ],
+      "needs_local_review": [
+        "Crop parameters are illustrative (validated: false)",
+        "Field boundary is a hand-drawn demo polygon"
+      ],
+      "evidence": [
+        {
+          "variable": "rain_annual_mm_mean",
+          "value": 190.2,
+          "unit": "mm",
+          "source": "Synthetic (demo)",
+          "interpretation": "Mock annual rainfall used for the water score"
+        },
+        {
+          "variable": "bare_days_est_mean",
+          "value": 102,
+          "unit": "days",
+          "source": "Synthetic (demo)",
+          "interpretation": "Mock days per year with NDVI below 0.2"
+        }
+      ],
+      "farm_year": [
+        {
+          "month": 1,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0,
+          "frost_risk": 0.1,
+          "dry_risk": 0.6,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.54,
+          "opportunity": false
+        },
+        {
+          "month": 2,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0,
+          "frost_risk": 0.05,
+          "dry_risk": 0.5,
+          "heavy_rain_risk": 0.1,
+          "erosion_alert": false,
+          "ndvi": 0.62,
+          "opportunity": false
+        },
+        {
+          "month": 3,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "flowering",
+          "heat_risk": 0.05,
+          "frost_risk": 0,
+          "dry_risk": 0.55,
+          "heavy_rain_risk": 0.1,
+          "erosion_alert": false,
+          "ndvi": 0.52,
+          "opportunity": false
+        },
+        {
+          "month": 4,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "harvest",
+          "heat_risk": 0.3,
+          "frost_risk": 0,
+          "dry_risk": 0.8,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.25,
+          "opportunity": false
+        },
+        {
+          "month": 5,
+          "crops": [],
+          "cover_crop": false,
+          "bare": true,
+          "stage": null,
+          "heat_risk": null,
+          "frost_risk": null,
+          "dry_risk": null,
+          "heavy_rain_risk": 0.1,
+          "erosion_alert": false,
+          "ndvi": 0.21,
+          "opportunity": false
+        },
+        {
+          "month": 6,
+          "crops": [],
+          "cover_crop": false,
+          "bare": true,
+          "stage": null,
+          "heat_risk": null,
+          "frost_risk": null,
+          "dry_risk": null,
+          "heavy_rain_risk": 0.25,
+          "erosion_alert": true,
+          "ndvi": 0.29,
+          "opportunity": false
+        },
+        {
+          "month": 7,
+          "crops": [
+            "Mungbean"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "sowing",
+          "heat_risk": 0.45,
+          "frost_risk": 0,
+          "dry_risk": 0.35,
+          "heavy_rain_risk": 0.55,
+          "erosion_alert": false,
+          "ndvi": 0.44,
+          "opportunity": false
+        },
+        {
+          "month": 8,
+          "crops": [
+            "Mungbean"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "flowering",
+          "heat_risk": 0.3,
+          "frost_risk": 0,
+          "dry_risk": 0.3,
+          "heavy_rain_risk": 0.5,
+          "erosion_alert": false,
+          "ndvi": 0.55,
+          "opportunity": false
+        },
+        {
+          "month": 9,
+          "crops": [
+            "Mungbean"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "harvest",
+          "heat_risk": 0.15,
+          "frost_risk": 0,
+          "dry_risk": 0.6,
+          "heavy_rain_risk": 0.2,
+          "erosion_alert": false,
+          "ndvi": 0.39,
+          "opportunity": false
+        },
+        {
+          "month": 10,
+          "crops": [],
+          "cover_crop": false,
+          "bare": true,
+          "stage": null,
+          "heat_risk": null,
+          "frost_risk": null,
+          "dry_risk": null,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.26,
+          "opportunity": true
+        },
+        {
+          "month": 11,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "sowing",
+          "heat_risk": 0,
+          "frost_risk": 0,
+          "dry_risk": 0.8,
+          "heavy_rain_risk": 0,
+          "erosion_alert": false,
+          "ndvi": 0.42,
+          "opportunity": false
+        },
+        {
+          "month": 12,
+          "crops": [
+            "Wheat"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0,
+          "frost_risk": 0.1,
+          "dry_risk": 0.7,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.48,
+          "opportunity": false
+        }
+      ],
+      "key_moments": [
+        "The field is bare in May and June. Heavy monsoon rain in late June can wash bare soil away.",
+        "October is a good window for a short fodder or cover crop between mungbean and wheat.",
+        "Mungbean grows in the monsoon, so it needs much less canal or tubewell water than cotton."
+      ],
+      "shortlisted": true,
+      "shortlist_reason": "Best water-saving option",
+      "fits_constraints": true,
+      "constraint_failures": [],
+      "mean_water_need_mm": 900,
+      "mean_irrigation_gap_mm": 720,
+      "annual_value_usd_ha": 1050
+    },
+    {
+      "rotation_id": "R1_berseem_rice",
+      "label": "Berseem – Rice + cover",
+      "strategy_type": "soil_building",
+      "is_existing": false,
+      "scores": {
+        "water": 56.1,
+        "soil": 82.9,
+        "resilience": 66.9,
+        "income": 66
+      },
+      "overall": 68,
+      "overall_low": 55.3,
+      "overall_high": 80.7,
+      "rank": 2,
+      "confidence": "LOW",
+      "why": [
+        "Mock: scores moderate on water because seasonal rain plus irrigation covers more of crop demand.",
+        "Mock: soil component improves due to ground cover and organic matter effect."
+      ],
+      "benefits": [
+        "Mock: reduces bare-field days after harvest",
+        "Mock: breaks the pest cycle"
+      ],
+      "risks": [
+        "Mock: sowing window may be missed in a late-monsoon year",
+        "Mock: market price for the extra crop is uncertain"
+      ],
+      "data_gaps": [
+        "Demo mode: all inputs are synthetic"
+      ],
+      "needs_local_review": [
+        "Crop parameters are illustrative (validated: false)",
+        "Field boundary is a hand-drawn demo polygon"
+      ],
+      "evidence": [
+        {
+          "variable": "rain_annual_mm_mean",
+          "value": 190.2,
+          "unit": "mm",
+          "source": "Synthetic (demo)",
+          "interpretation": "Mock annual rainfall used for the water score"
+        },
+        {
+          "variable": "bare_days_est_mean",
+          "value": 102,
+          "unit": "days",
+          "source": "Synthetic (demo)",
+          "interpretation": "Mock days per year with NDVI below 0.2"
+        }
+      ],
+      "farm_year": [
+        {
+          "month": 1,
+          "crops": [
+            "Berseem"
+          ],
+          "cover_crop": true,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0,
+          "frost_risk": 0.1,
+          "dry_risk": 0.6,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.54,
+          "opportunity": false
+        },
+        {
+          "month": 2,
+          "crops": [
+            "Berseem"
+          ],
+          "cover_crop": true,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0,
+          "frost_risk": 0.05,
+          "dry_risk": 0.5,
+          "heavy_rain_risk": 0.1,
+          "erosion_alert": false,
+          "ndvi": 0.62,
+          "opportunity": false
+        },
+        {
+          "month": 3,
+          "crops": [
+            "Berseem"
+          ],
+          "cover_crop": true,
+          "bare": false,
+          "stage": "flowering",
+          "heat_risk": 0.05,
+          "frost_risk": 0,
+          "dry_risk": 0.55,
+          "heavy_rain_risk": 0.1,
+          "erosion_alert": false,
+          "ndvi": 0.52,
+          "opportunity": false
+        },
+        {
+          "month": 4,
+          "crops": [
+            "Berseem"
+          ],
+          "cover_crop": true,
+          "bare": false,
+          "stage": "harvest",
+          "heat_risk": 0.3,
+          "frost_risk": 0,
+          "dry_risk": 0.8,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.25,
+          "opportunity": false
+        },
+        {
+          "month": 5,
+          "crops": [],
+          "cover_crop": false,
+          "bare": true,
+          "stage": null,
+          "heat_risk": null,
+          "frost_risk": null,
+          "dry_risk": null,
+          "heavy_rain_risk": 0.1,
+          "erosion_alert": false,
+          "ndvi": 0.21,
+          "opportunity": false
+        },
+        {
+          "month": 6,
+          "crops": [
+            "Rice"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "sowing",
+          "heat_risk": 0.8,
+          "frost_risk": 0,
+          "dry_risk": 0.7,
+          "heavy_rain_risk": 0.25,
+          "erosion_alert": false,
+          "ndvi": 0.29,
+          "opportunity": false
+        },
+        {
+          "month": 7,
+          "crops": [
+            "Rice"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0.45,
+          "frost_risk": 0,
+          "dry_risk": 0.35,
+          "heavy_rain_risk": 0.55,
+          "erosion_alert": false,
+          "ndvi": 0.44,
+          "opportunity": false
+        },
+        {
+          "month": 8,
+          "crops": [
+            "Rice"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "flowering",
+          "heat_risk": 0.3,
+          "frost_risk": 0,
+          "dry_risk": 0.3,
+          "heavy_rain_risk": 0.5,
+          "erosion_alert": false,
+          "ndvi": 0.55,
+          "opportunity": false
+        },
+        {
+          "month": 9,
+          "crops": [
+            "Rice"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0.15,
+          "frost_risk": 0,
+          "dry_risk": 0.6,
+          "heavy_rain_risk": 0.2,
+          "erosion_alert": false,
+          "ndvi": 0.39,
+          "opportunity": false
+        },
+        {
+          "month": 10,
+          "crops": [
+            "Rice"
+          ],
+          "cover_crop": false,
+          "bare": false,
+          "stage": "harvest",
+          "heat_risk": 0.05,
+          "frost_risk": 0,
+          "dry_risk": 0.85,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.26,
+          "opportunity": false
+        },
+        {
+          "month": 11,
+          "crops": [
+            "Berseem"
+          ],
+          "cover_crop": true,
+          "bare": false,
+          "stage": "sowing",
+          "heat_risk": 0,
+          "frost_risk": 0,
+          "dry_risk": 0.8,
+          "heavy_rain_risk": 0,
+          "erosion_alert": false,
+          "ndvi": 0.42,
+          "opportunity": false
+        },
+        {
+          "month": 12,
+          "crops": [
+            "Berseem"
+          ],
+          "cover_crop": true,
+          "bare": false,
+          "stage": "growing",
+          "heat_risk": 0,
+          "frost_risk": 0.1,
+          "dry_risk": 0.7,
+          "heavy_rain_risk": 0.05,
+          "erosion_alert": false,
+          "ndvi": 0.48,
+          "opportunity": false
+        }
+      ],
+      "key_moments": [
+        "Berseem covers the soil all winter and adds nitrogen for the rice that follows.",
+        "Rice needs standing water from June to October: this is the thirstiest option here.",
+        "Only May is bare, during the hottest and driest weeks of the year."
+      ],
+      "shortlisted": true,
+      "shortlist_reason": "Best soil-building option",
+      "fits_constraints": true,
+      "constraint_failures": [],
+      "mean_water_need_mm": 1900,
+      "mean_irrigation_gap_mm": 1700,
+      "annual_value_usd_ha": 1250
+    }
+  ],
+  "data_mode": "demo",
+  "data_quality": {
+    "power": "demo",
+    "smap": "demo",
+    "modis": "demo",
+    "soil": "demo",
+    "terrain": "demo"
+  },
+  "disclaimer": "Supports farmers and advisers; it does not replace them. Demo data shown.",
+  "total_candidates": 3
+}

@@ -16,6 +16,7 @@ import { formatLatLon, parseCoordinates } from '../lib/geo/coords'
 import { kindLabel, regionLine, searchPlaces, type Place } from '../lib/geo/geocode'
 import { summarizeRegions, regionName, type RegionSummary } from '../lib/geo/regions'
 import { cn } from './ui/cn'
+import { hasKey, useI18n, type TranslationKey } from '../lib/i18n'
 
 export type SearchPick =
   | { kind: 'coords'; lat: number; lon: number; swapped: boolean }
@@ -24,6 +25,13 @@ export type SearchPick =
   | { kind: 'place'; place: Place }
 
 type Option = SearchPick & { key: string; group: 'Coordinates' | 'Pilot fields' | 'Pilot regions' | 'Places' }
+
+const GROUP_KEY: Record<Option['group'], TranslationKey> = {
+  Coordinates: 'mapSearch.groupCoordinates',
+  'Pilot fields': 'mapSearch.groupFields',
+  'Pilot regions': 'mapSearch.groupRegions',
+  Places: 'mapSearch.groupPlaces',
+}
 
 const NO_PLACES: Place[] = []
 const MIN_REMOTE_CHARS = 3
@@ -50,6 +58,7 @@ function optionText(o: Option): string {
 
 export default function MapSearch({ fields, onPick, className }: Props) {
   const uid = useId()
+  const { t } = useI18n()
   const listId = `${uid}-list`
   const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
@@ -160,30 +169,30 @@ export default function MapSearch({ fields, onPick, className }: Props) {
 
   // Status line under the options (polite live region).
   let status: ReactNode = null
-  if (q && !coords && q.length < MIN_REMOTE_CHARS) status = 'Type at least 3 letters to search places.'
-  else if (remote === 'loading') status = 'Searching places…'
-  else if (remote === 'error') status = 'Place search is unavailable right now. Fields, regions and coordinates still work.'
-  else if (remote === 'done' && places.length === 0 && options.length === 0) status = 'No matches. Try a town, district or "lat, lon".'
+  if (q && !coords && q.length < MIN_REMOTE_CHARS) status = t('mapSearch.minChars')
+  else if (remote === 'loading') status = t('mapSearch.searching')
+  else if (remote === 'error') status = t('mapSearch.error')
+  else if (remote === 'done' && places.length === 0 && options.length === 0) status = t('mapSearch.noMatches')
 
   const showPanel = open && (options.length > 0 || status !== null)
   let lastGroup: Option['group'] | null = null
 
   return (
     <div data-component="MapSearch" className={cn('relative w-full', className)}>
-      <div className="glass-strong flex h-11 items-center gap-2 rounded-full pl-4 pr-1 focus-within:outline-2 focus-within:outline-focus">
+      <div className="glass-strong flex min-h-11 items-center gap-2 rounded-full ps-4 pe-1 focus-within:outline-2 focus-within:outline-focus">
         <Search size={18} strokeWidth={1.75} aria-hidden className="shrink-0 text-fg-2" />
         <input
           ref={inputRef}
           type="text"
           role="combobox"
-          aria-label="Search places, coordinates, regions or fields"
+          aria-label={t('mapSearch.inputLabel')}
           aria-autocomplete="list"
           aria-expanded={showPanel}
           aria-controls={listId}
           aria-activedescendant={showPanel && activeIdx >= 0 ? `${uid}-opt-${activeIdx}` : undefined}
           autoComplete="off"
           spellCheck={false}
-          placeholder="Search address, town, region or lat, lon"
+          placeholder={t('mapSearch.placeholder')}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -193,7 +202,7 @@ export default function MapSearch({ fields, onPick, className }: Props) {
           onFocus={() => setOpen(true)}
           onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
-          className="h-full min-w-0 flex-1 bg-transparent text-body text-fg outline-none placeholder:text-fg-3"
+          className="h-11 min-w-0 flex-1 bg-transparent text-body text-fg outline-none placeholder:text-fg-3"
         />
         {remote === 'loading' && (
           <LoaderCircle size={18} strokeWidth={1.75} aria-hidden className="fsa-spin shrink-0 text-fg-2" />
@@ -201,7 +210,7 @@ export default function MapSearch({ fields, onPick, className }: Props) {
         {query && (
           <button
             type="button"
-            aria-label="Clear search"
+            aria-label={t('mapSearch.clear')}
             onMouseDown={(e) => e.preventDefault()}
             onClick={clear}
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-fg-2 hover:bg-glass-flat hover:text-fg focus-visible:outline-2 focus-visible:outline-focus"
@@ -213,7 +222,7 @@ export default function MapSearch({ fields, onPick, className }: Props) {
 
       {showPanel && (
         <div className="glass-strong absolute inset-x-0 top-[calc(100%+8px)] z-10 max-h-[min(360px,50dvh)] overflow-y-auto rounded-[var(--radius-control)] p-1">
-          <ul id={listId} role="listbox" aria-label="Search suggestions" className="m-0 list-none p-0">
+          <ul id={listId} role="listbox" aria-label={t('mapSearch.suggestions')} className="m-0 list-none p-0">
             {options.map((o, i) => {
               const heading = o.group !== lastGroup ? o.group : null
               lastGroup = o.group
@@ -224,7 +233,7 @@ export default function MapSearch({ fields, onPick, className }: Props) {
                       role="presentation"
                       className="m-0 px-3 pb-1 pt-2 text-label font-semibold uppercase tracking-wide text-fg-3"
                     >
-                      {heading}
+                      {t(GROUP_KEY[heading])}
                     </p>
                   )}
                   <div
@@ -251,7 +260,7 @@ export default function MapSearch({ fields, onPick, className }: Props) {
             </p>
           )}
           {places.length > 0 && (
-            <p className="m-0 px-3 pb-1 pt-1 text-right text-[0.75rem] text-fg-3">
+            <p lang="en" className="m-0 px-3 pb-1 pt-1 text-end text-[0.75rem] text-fg-3">
               Place search © OpenStreetMap contributors · Photon
             </p>
           )}
@@ -262,6 +271,9 @@ export default function MapSearch({ fields, onPick, className }: Props) {
 }
 
 function OptionBody({ o }: { o: Option }) {
+  const { lang, t, tn } = useI18n()
+  const kind = (k: string) =>
+    lang === 'en' || !hasKey(`mapSearch.kind.${k}`) ? kindLabel(k) : t(`mapSearch.kind.${k}` as TranslationKey)
   const icon = { coords: Crosshair, field: Sprout, region: Globe, place: MapPin }[o.kind]
   const Icon = icon
   let title: string
@@ -270,32 +282,34 @@ function OptionBody({ o }: { o: Option }) {
   switch (o.kind) {
     case 'coords':
       title = formatLatLon(o.lat, o.lon)
-      sub = o.swapped ? 'Read as longitude, latitude. Go to this point' : 'Go to this point and look up the address'
+      sub = o.swapped ? t('mapSearch.goToPointSwapped') : t('mapSearch.goToPoint')
       break
     case 'field':
       title = `${o.field.field_id} · ${o.field.name}`
       sub = regionName(o.field.region_id)
-      tag = 'Pilot'
+      tag = t('mapSearch.pilotTag')
       break
     case 'region':
       title = o.region.name
-      sub = `${o.region.fields.length} pilot field${o.region.fields.length === 1 ? '' : 's'}`
+      sub = tn('mapSearch.pilotFieldCount', o.region.fields.length)
       break
     case 'place':
       title = o.place.name
       sub = regionLine(o.place) || o.place.country || ''
-      tag = kindLabel(o.place.kind)
+      tag = kind(o.place.kind)
       break
   }
   return (
     <>
       <Icon size={18} strokeWidth={1.75} aria-hidden className="mt-[3px] shrink-0 text-accent" />
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-body font-semibold text-fg">{title}</span>
+        <span dir={o.kind === 'coords' ? 'ltr' : undefined} className="truncate text-start text-body font-semibold text-fg">
+          {title}
+        </span>
         {sub && <span className="truncate text-label text-fg-2">{sub}</span>}
       </span>
       {tag && (
-        <span className="mt-[3px] shrink-0 rounded-full border border-glass-border px-2 text-[0.75rem] leading-5 text-fg-2">
+        <span className="mt-[3px] shrink-0 rounded-full border border-glass-border px-2 text-[0.75rem] leading-5 whitespace-nowrap text-fg-2">
           {tag}
         </span>
       )}

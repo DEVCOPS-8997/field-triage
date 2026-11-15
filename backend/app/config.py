@@ -71,6 +71,14 @@ class Settings:
     location_rate_limit_per_minute: int = 10
     location_data_cache_dir: Path = REPO_ROOT / "data" / "cache" / "location"
     location_provider_timeout_seconds: float = 20.0
+    # MODIS NDVI (MOD13Q1 v061) per point: ORNL DAAC web service first, then NASA AppEEARS.
+    ndvi_cache_dir: Path = REPO_ROOT / "data" / "cache" / "ndvi"
+    ndvi_enabled: bool = True
+    ornl_modis_url: str = "https://modis.ornl.gov/rst/api/v1"
+    appeears_url: str = "https://appeears.earthdatacloud.nasa.gov/api"
+    earthdata_username: str | None = None
+    earthdata_password: str | None = None
+    ndvi_task_timeout_seconds: float = 1800.0
 
     @property
     def public_data_mode(self) -> PublicDataMode:
@@ -168,4 +176,12 @@ def get_settings(
         power_cache_dir=cache_dir,
         location_rate_limit_per_minute=int(_env_num("LOCATION_RATE_LIMIT_PER_MINUTE", 10, int)),
         location_data_cache_dir=(REPO_ROOT / Path(os.getenv("LOCATION_DATA_CACHE_DIR", "data/cache/location"))).resolve(),
-        location_provider_timeout_seconds=float(_env_num("LOCATION_PROVIDER_TIMEOUT_SECONDS", 20.0, float)),    )
+        location_provider_timeout_seconds=float(_env_num("LOCATION_PROVIDER_TIMEOUT_SECONDS", 20.0, float)),
+        ndvi_cache_dir=(REPO_ROOT / Path(os.getenv("NDVI_CACHE_DIR", "data/cache/ndvi"))).resolve(),
+        ndvi_enabled=os.getenv("NDVI_ENABLED", "true").strip().lower() not in ("0", "false", "no"),
+        ornl_modis_url=os.getenv("ORNL_MODIS_URL", "https://modis.ornl.gov/rst/api/v1").rstrip("/"),
+        appeears_url=os.getenv("APPEEARS_URL", "https://appeears.earthdatacloud.nasa.gov/api").rstrip("/"),
+        earthdata_username=(os.getenv("EARTHDATA_USERNAME") or "").strip() or None,
+        earthdata_password=os.getenv("EARTHDATA_PASSWORD") or None,
+        ndvi_task_timeout_seconds=float(_env_num("NDVI_TASK_TIMEOUT_SECONDS", 1800.0, float)),
+    )

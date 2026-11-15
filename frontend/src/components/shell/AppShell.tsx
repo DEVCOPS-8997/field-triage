@@ -6,6 +6,8 @@
  * - < 768px: 56px top header with the brand + 64px bottom bar; Disclaimer inline at the end of <main>
  * Nav: Overview (/), Field detail (/fields/{id}, disabled with "Select a field first" when no field
  * is selected), Methodology (/methodology). Skip link is the first tab stop.
+ * Language: "EN | اردو" LanguageSwitcher in the sidebar header, the rail and the phone header.
+ * Layout uses logical properties (start/end), so in Urdu (dir="rtl") the sidebar sits on the right.
  * Focus moves to #page-title (PageHeader) on route change; content fades in over 150ms.
  */
 import { useEffect, useId, useRef, type ComponentType } from 'react'
@@ -16,6 +18,8 @@ import { accountApi } from '../../api/account'
 import DisclaimerImpl from '../Disclaimer'
 import { Tooltip } from '../ui/Tooltip'
 import { cn } from '../ui/cn'
+import { useI18n } from '../../lib/i18n'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 // Disclaimer is owned by another phase; its `variant` prop is part of the UI contract.
 const Disclaimer = DisclaimerImpl as unknown as ComponentType<{ variant?: 'card' | 'inline' }>
@@ -31,15 +35,16 @@ interface NavItem {
 function useNavItems(): NavItem[] {
   const { pathname } = useLocation()
   const user = useAuth((s) => s.user)
+  const { t } = useI18n()
   return [
-    { key: 'overview', label: 'Overview', icon: LayoutDashboard, to: '/', active: pathname === '/' },
+    { key: 'overview', label: t('nav.overview'), icon: LayoutDashboard, to: '/', active: pathname === '/' },
     // Saved fields are personal: the nav shows them only to signed-in users.
     user
-      ? { key: 'field', label: 'My fields', icon: Wheat, to: '/my-fields', active: pathname.startsWith('/my-fields') }
-      : { key: 'account', label: 'Sign in', icon: UserRound, to: '/account', active: pathname.startsWith('/account') },
+      ? { key: 'field', label: t('nav.myFields'), icon: Wheat, to: '/my-fields', active: pathname.startsWith('/my-fields') }
+      : { key: 'account', label: t('nav.signIn'), icon: UserRound, to: '/account', active: pathname.startsWith('/account') },
     {
       key: 'methodology',
-      label: 'Methodology',
+      label: t('nav.methodology'),
       icon: BookOpenText,
       to: '/methodology',
       active: pathname.startsWith('/methodology'),
@@ -47,7 +52,7 @@ function useNavItems(): NavItem[] {
   ]
 }
 
-const HELPER = 'Select a field first'
+const useHelper = () => useI18n().t('nav.selectFieldFirst')
 
 function BrandChip() {
   return (
@@ -59,11 +64,12 @@ function BrandChip() {
 
 /* ------------------------------------------------------------- sidebar */
 function SidebarItem({ item, helperId }: { item: NavItem; helperId: string }) {
+  const HELPER = useHelper()
   const Icon = item.icon
   const base =
     'relative flex min-h-[48px] w-full items-center gap-4 rounded-[var(--radius-control)] px-4 text-body font-semibold transition-colors duration-150'
   const indicator = item.active && (
-    <span aria-hidden className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-accent shadow-[0_0_12px_rgba(74,222,128,0.6)]" />
+    <span aria-hidden className="absolute start-0 top-2 bottom-2 w-1 rounded-full bg-accent shadow-[0_0_12px_rgba(74,222,128,0.6)]" />
   )
   if (!item.to) {
     return (
@@ -101,19 +107,25 @@ function SidebarItem({ item, helperId }: { item: NavItem; helperId: string }) {
 
 function Sidebar({ items }: { items: NavItem[] }) {
   const helperId = useId()
+  const { t } = useI18n()
   return (
     <aside
       data-component="Sidebar"
-      className="glass-strong fixed inset-y-0 left-0 z-[1100] hidden w-[256px] flex-col gap-8 rounded-none! border-y-0! border-l-0! p-4 xl:flex"
+      className="glass-strong fixed inset-y-0 start-0 z-[1100] hidden w-[256px] flex-col gap-6 overflow-y-auto rounded-none! border-y-0! border-s-0! p-4 xl:flex"
     >
-      <Link to="/" className="flex min-h-[48px] items-center gap-2 rounded-[var(--radius-control)] no-underline">
-        <BrandChip />
-        <span className="flex flex-col">
-          <span className="font-display text-heading font-semibold text-fg">Field Shift</span>
-          <span className="text-label font-normal text-fg-3">Advisor</span>
-        </span>
-      </Link>
-      <nav aria-label="Primary" className="flex-1">
+      <div className="flex flex-col gap-4">
+        <Link to="/" className="flex min-h-[48px] items-center gap-2 rounded-[var(--radius-control)] no-underline">
+          <BrandChip />
+          <span className="flex flex-col">
+            <span lang="en" className="font-display text-heading font-semibold text-fg">
+              {t('common.appName')}
+            </span>
+            <span className="text-label font-normal text-fg-3">{t('common.appTagline')}</span>
+          </span>
+        </Link>
+        <LanguageSwitcher className="self-start" />
+      </div>
+      <nav aria-label={t('nav.primary')} className="flex-1">
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {items.map((it) => (
             <li key={it.key}>
@@ -133,6 +145,7 @@ function Sidebar({ items }: { items: NavItem[] }) {
 /** Sidebar account block: "Create account" for visitors, name + sign out for signed-in users. */
 function AccountBox() {
   const user = useAuth((s) => s.user)
+  const { t } = useI18n()
   if (!user) {
     return (
       <Link
@@ -141,8 +154,8 @@ function AccountBox() {
       >
         <UserPlus size={20} strokeWidth={1.75} aria-hidden className="text-accent" />
         <span className="flex flex-col">
-          Create account
-          <span className="font-normal text-fg-3">to save your fields</span>
+          {t('nav.createAccount')}
+          <span className="font-normal text-fg-3">{t('nav.saveFieldsHint')}</span>
         </span>
       </Link>
     )
@@ -156,10 +169,10 @@ function AccountBox() {
         <span className="truncate text-label font-semibold text-fg">{user.name}</span>
         <span className="truncate text-[12px] text-fg-3">{user.email}</span>
       </Link>
-      <Tooltip content="Sign out" side="top">
+      <Tooltip content={t('nav.signOut')} side="top">
         <button
           type="button"
-          aria-label="Sign out"
+          aria-label={t('nav.signOut')}
           onClick={() => void accountApi.logout()}
           className="flex size-[36px] items-center justify-center rounded-full text-fg-2 hover:bg-[rgba(255,255,255,0.08)] hover:text-fg"
         >
@@ -173,15 +186,18 @@ function AccountBox() {
 /* ----------------------------------------------------------------- rail */
 function Rail({ items }: { items: NavItem[] }) {
   const helperId = useId()
+  const HELPER = useHelper()
+  const { t, dir } = useI18n()
+  const tipSide = dir === 'rtl' ? 'left' : 'right'
   return (
     <aside
       data-component="IconRail"
-      className="glass-strong fixed inset-y-0 left-0 z-[1100] hidden w-[80px] flex-col items-center gap-8 rounded-none! border-y-0! border-l-0! py-4 md:flex xl:hidden"
+      className="glass-strong fixed inset-y-0 start-0 z-[1100] hidden w-[80px] flex-col items-center gap-6 rounded-none! border-y-0! border-s-0! py-4 md:flex xl:hidden"
     >
-      <Link to="/" aria-label="Field Shift Advisor, overview" className="rounded-[var(--radius-chip)]">
+      <Link to="/" aria-label={t('nav.brandHome')} className="rounded-[var(--radius-chip)]">
         <BrandChip />
       </Link>
-      <nav aria-label="Primary">
+      <nav aria-label={t('nav.primary')}>
         <ul className="m-0 flex list-none flex-col items-center gap-2 p-0">
           {items.map((it) => {
             const Icon = it.icon
@@ -191,11 +207,11 @@ function Rail({ items }: { items: NavItem[] }) {
             )
             return (
               <li key={it.key}>
-                <Tooltip content={it.to ? it.label : `${it.label}: ${HELPER}`} side="right">
+                <Tooltip content={it.to ? it.label : `${it.label}: ${HELPER}`} side={tipSide}>
                   {it.to ? (
                     <Link to={it.to} aria-label={it.label} aria-current={it.active ? 'page' : undefined} className={cls}>
                       {it.active && (
-                        <span aria-hidden className="absolute -left-4 top-2 bottom-2 w-1 rounded-full bg-accent" />
+                        <span aria-hidden className="absolute -start-4 top-2 bottom-2 w-1 rounded-full bg-accent" />
                       )}
                       <Icon size={24} strokeWidth={1.75} aria-hidden />
                     </Link>
@@ -220,24 +236,29 @@ function Rail({ items }: { items: NavItem[] }) {
           })}
         </ul>
       </nav>
+      <LanguageSwitcher orientation="vertical" className="mt-auto" />
     </aside>
   )
 }
 
 /* ------------------------------------------------------------ phone UI */
 function MobileHeader() {
+  const { t } = useI18n()
   return (
     <header
       data-component="MobileHeader"
       className="glass-strong fixed inset-x-0 top-0 z-[1100] flex h-[56px] items-center gap-2 rounded-none! border-x-0! border-t-0! px-4 md:hidden"
     >
-      <Link to="/" className="flex items-center gap-2 no-underline">
-        <span className="flex size-[40px] items-center justify-center rounded-[var(--radius-chip)] bg-accent/14 text-accent">
+      <Link to="/" className="flex min-w-0 items-center gap-2 no-underline">
+        <span className="flex size-[40px] shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-accent/14 text-accent">
           <Sprout size={20} strokeWidth={1.75} aria-hidden />
         </span>
-        <span className="font-display text-heading font-semibold text-fg">Field Shift</span>
-        <span className="text-label font-normal text-fg-3">Advisor</span>
+        <span lang="en" className="truncate font-display text-heading font-semibold text-fg">
+          {t('common.appName')}
+        </span>
+        <span className="hidden truncate text-label font-normal text-fg-3 min-[420px]:inline">{t('common.appTagline')}</span>
       </Link>
+      <LanguageSwitcher size="sm" className="ms-auto" />
       <MobileAccount />
     </header>
   )
@@ -245,11 +266,12 @@ function MobileHeader() {
 
 function MobileAccount() {
   const user = useAuth((s) => s.user)
+  const { t } = useI18n()
   return (
     <Link
       to="/account"
-      aria-label={user ? `Account: ${user.name}` : 'Create account or sign in'}
-      className="ml-auto flex size-[40px] items-center justify-center rounded-full bg-accent/14 font-semibold text-accent no-underline"
+      aria-label={user ? t('nav.accountOf', { name: user.name }) : t('nav.createOrSignIn')}
+      className="flex size-[40px] shrink-0 items-center justify-center rounded-full bg-accent/14 font-semibold text-accent no-underline"
     >
       {user ? user.name.slice(0, 1).toUpperCase() : <UserPlus size={20} strokeWidth={1.75} aria-hidden />}
     </Link>
@@ -258,17 +280,19 @@ function MobileAccount() {
 
 function BottomBar({ items }: { items: NavItem[] }) {
   const helperId = useId()
+  const HELPER = useHelper()
+  const { t } = useI18n()
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t('nav.primary')}
       data-component="BottomBar"
       className="glass-strong fixed inset-x-0 bottom-0 z-[1100] rounded-none! border-x-0! border-b-0! pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <ul className="m-0 grid h-[64px] list-none grid-cols-3 p-0">
+      <ul className="m-0 grid min-h-[64px] list-none grid-cols-3 p-0">
         {items.map((it) => {
           const Icon = it.icon
           const cls = cn(
-            'relative flex h-full w-full flex-col items-center justify-center gap-1 text-label font-semibold',
+            'relative flex h-full min-h-[64px] w-full flex-col items-center justify-center gap-1 px-1 text-center text-label font-semibold',
             it.active ? 'text-accent' : 'text-fg-2',
           )
           const pill = it.active && (
@@ -308,6 +332,7 @@ function BottomBar({ items }: { items: NavItem[] }) {
 /* ---------------------------------------------------------------- shell */
 export function AppShell() {
   const items = useNavItems()
+  const { t } = useI18n()
   const { pathname } = useLocation()
   const first = useRef(true)
 
@@ -327,9 +352,9 @@ export function AppShell() {
       <div className="app-backdrop" aria-hidden />
       <a
         href="#main"
-        className="glass-strong fixed left-4 top-4 z-[1300] -translate-y-[200%] rounded-[var(--radius-control)] px-4 py-2 text-label font-semibold text-fg focus:translate-y-0"
+        className="glass-strong fixed start-4 top-4 z-[1300] -translate-y-[200%] rounded-[var(--radius-control)] px-4 py-2 text-label font-semibold text-fg focus:translate-y-0"
       >
-        Skip to main content
+        {t('nav.skipToMain')}
       </a>
       <Sidebar items={items} />
       <Rail items={items} />
@@ -337,7 +362,7 @@ export function AppShell() {
       <main
         id="main"
         tabIndex={-1}
-        className="min-w-0 pt-[72px] pb-[calc(64px+env(safe-area-inset-bottom)+16px)] outline-none md:pl-[80px] md:pt-0 md:pb-0 xl:pl-[256px]"
+        className="min-w-0 pt-[72px] pb-[calc(64px+env(safe-area-inset-bottom)+16px)] outline-none md:ps-[80px] md:pt-0 md:pb-0 xl:ps-[256px]"
       >
         <div key={pathname} className="fsa-fade-in mx-auto w-full max-w-[1440px] px-4 md:px-6 md:py-6 xl:px-8 xl:py-8">
           <Outlet />

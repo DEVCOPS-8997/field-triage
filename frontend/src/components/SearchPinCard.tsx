@@ -12,6 +12,8 @@ import { regionName } from '../lib/geo/regions'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
 import { Skeleton } from './ui/Skeleton'
+import { Ltr } from './ui/Ltr'
+import { hasKey, useI18n, type TranslationKey } from '../lib/i18n'
 
 export interface SearchPin {
   lat: number
@@ -36,6 +38,9 @@ interface Props {
 
 export default function SearchPinCard({ pin, fields, onSelectField, onClose, onAnalyze }: Props) {
   const [copied, setCopied] = useState(false)
+  const { lang, t, rich } = useI18n()
+  const kind = (k: string) =>
+    lang === 'en' || !hasKey(`mapSearch.kind.${k}`) ? kindLabel(k) : t(`mapSearch.kind.${k}` as TranslationKey)
 
   const nearest = useMemo(() => {
     let best: { field: FieldInfo; km: number } | null = null
@@ -57,7 +62,7 @@ export default function SearchPinCard({ pin, fields, onSelectField, onClose, onA
   }
 
   const p = pin.place
-  const title = pin.source === 'coords' ? 'Dropped pin' : (p?.name ?? 'Selected place')
+  const title = pin.source === 'coords' ? t('searchPin.droppedPin') : (p?.name ?? t('searchPin.selectedPlace'))
   const street = p ? streetLine(p) : undefined
   const region = p ? regionLine(p, pin.source === 'coords' || p.kind !== 'city') : ''
 
@@ -72,94 +77,94 @@ export default function SearchPinCard({ pin, fields, onSelectField, onClose, onA
           <p className="m-0 truncate text-body font-semibold text-fg" title={title}>
             {title}
           </p>
-          {p && pin.source === 'place' && <p className="m-0 text-label text-fg-3">{kindLabel(p.kind)}</p>}
+          {p && pin.source === 'place' && <p className="m-0 text-label text-fg-3">{kind(p.kind)}</p>}
         </div>
-        <IconButton label="Clear search pin" icon={X} variant="ghost" tooltipSide="none" onClick={onClose} className="-m-2" />
+        <IconButton label={t('searchPin.clearPin')} icon={X} variant="ghost" tooltipSide="none" onClick={onClose} className="-m-2" />
       </div>
 
       {/* address and region */}
       {pin.status === 'loading' ? (
-        <div className="flex flex-col gap-1" aria-label="Looking up address">
+        <div className="flex flex-col gap-1" aria-label={t('searchPin.lookingUp')}>
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-4 w-1/2" />
         </div>
       ) : pin.status === 'error' ? (
-        <p className="m-0 text-label text-fg-2">Address lookup is unavailable right now. The coordinates below are exact.</p>
+        <p className="m-0 text-label text-fg-2">{t('searchPin.lookupError')}</p>
       ) : p ? (
         <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-label">
           {pin.source === 'coords' && (
             <>
-              <dt className="text-fg-3">Near</dt>
+              <dt className="text-fg-3">{t('searchPin.near')}</dt>
               <dd className="m-0 truncate text-fg">{p.name}</dd>
             </>
           )}
           {street && street !== p.name && (
             <>
-              <dt className="text-fg-3">Street</dt>
+              <dt className="text-fg-3">{t('searchPin.street')}</dt>
               <dd className="m-0 truncate text-fg">{street}</dd>
             </>
           )}
           {region && (
             <>
-              <dt className="text-fg-3">Region</dt>
+              <dt className="text-fg-3">{t('searchPin.region')}</dt>
               <dd className="m-0 text-fg">{region}</dd>
             </>
           )}
           {p.postcode && (
             <>
-              <dt className="text-fg-3">Postcode</dt>
-              <dd className="m-0 text-fg">{p.postcode}</dd>
+              <dt className="text-fg-3">{t('searchPin.postcode')}</dt>
+              <dd className="m-0 text-fg">
+                <Ltr>{p.postcode}</Ltr>
+              </dd>
             </>
           )}
         </dl>
       ) : (
-        <p className="m-0 text-label text-fg-2">No address found here (open water or unmapped area).</p>
+        <p className="m-0 text-label text-fg-2">{t('searchPin.noAddress')}</p>
       )}
 
       {/* coordinates */}
       <div className="flex items-center justify-between gap-2 rounded-[var(--radius-chip)] bg-glass-flat px-3 py-1">
-        <span className="min-w-0 truncate font-mono text-label text-fg" title={plainLatLon(pin.lat, pin.lon)}>
+        <span dir="ltr" className="ltr min-w-0 truncate font-mono text-label text-fg" title={plainLatLon(pin.lat, pin.lon)}>
           {formatLatLon(pin.lat, pin.lon)}
         </span>
         <IconButton
-          label={copied ? 'Copied' : 'Copy lat, lon'}
+          label={copied ? t('common.copied') : t('searchPin.copyLatLon')}
           icon={copied ? Check : Copy}
           variant="ghost"
           tooltipSide="top"
           onClick={copy}
-          className="-mr-2 shrink-0"
+          className="-me-2 shrink-0"
           iconClassName={copied ? 'text-accent' : undefined}
         />
       </div>
-      {pin.swapped && <p className="m-0 text-label text-fg-3">Your input was read as longitude, latitude.</p>}
+      {pin.swapped && <p className="m-0 text-label text-fg-3">{t('searchPin.swapped')}</p>}
 
       {/* live NASA analysis for this exact point */}
       <div className="flex flex-col gap-1 border-t border-glass-border pt-2">
         <Button variant="primary" icon={MapPin} onClick={onAnalyze} className="w-full">
-          Analyze this location
+          {t('searchPin.analyze')}
         </Button>
-        <p className="m-0 text-label text-fg-3">
-          Uses NASA POWER climate history for this point's grid cell (supported regions only).
-        </p>
+        <p className="m-0 text-label text-fg-3">{t('searchPin.analyzeHint')}</p>
       </div>
 
       {/* nearest pilot field */}
       {nearest && (
         <div className="flex flex-col gap-2 border-t border-glass-border pt-2">
           <p className="m-0 text-label text-fg-2">
-            Nearest pilot field:{' '}
-            <span className="font-semibold text-fg">
-              {nearest.field.field_id} · {nearest.field.name}
-            </span>{' '}
-            ({regionName(nearest.field.region_id)}), {formatDistance(nearest.km)} away.
+            {rich('searchPin.nearest', {
+              field: (
+                <span className="font-semibold text-fg">
+                  <Ltr>{nearest.field.field_id}</Ltr> · {nearest.field.name}
+                </span>
+              ),
+              region: regionName(nearest.field.region_id),
+              distance: <Ltr>{formatDistance(nearest.km)}</Ltr>,
+            })}
           </p>
-          {nearest.km > NEAR_KM && (
-            <p className="m-0 text-label text-fg-3">
-              No pilot field is close to this spot. Rotation scores exist only for the 8 demo fields.
-            </p>
-          )}
+          {nearest.km > NEAR_KM && <p className="m-0 text-label text-fg-3">{t('searchPin.farAway')}</p>}
           <Button variant="secondary" icon={Navigation} onClick={() => onSelectField(nearest.field.field_id)} className="w-full">
-            Go to {nearest.field.field_id}
+            {t('searchPin.goTo', { id: nearest.field.field_id })}
           </Button>
         </div>
       )}

@@ -1,4 +1,4 @@
-import type { CompareResponse, Priorities, RotationScore, Scenario } from '../types/api'
+import type { CompareResponse, EquipmentId, FarmConstraints, Priorities, RotationScore, Scenario } from '../types/api'
 
 // Mock-mode re-scoring (CMP-02). The static mock compare JSON ignores the
 // request, so the client recomputes the overall score from the component
@@ -97,5 +97,95 @@ export function rescoreMock(
     ...resp,
     scenario_applied: scenario.rain_multiplier !== 1 || scenario.temp_delta_c !== 0,
     rotations: order.map((r) => ({ ...r, rank: rankById.get(r.rotation_id) ?? r.rank })),
+  }
+}
+
+// ---- Mock farm limits (demo stand-in for the backend shortlist, not the real rules) ----
+
+const EQUIPMENT_BY_CROP: Record<string, EquipmentId[]> = {
+  wheat: ['seed_drill', 'combine_harvester'],
+  rice: ['rice_transplanting', 'combine_harvester'],
+  cotton: ['picking_labour'],
+  chilli: ['picking_labour'],
+  vegetable: ['daily_market_access', 'picking_labour'],
+  melon: ['daily_market_access'],
+  mango: ['orchard_commitment'],
+  citrus: ['orchard_commitment'],
+}
+
+const EQUIPMENT_WORDS: Record<EquipmentId, string> = {
+  seed_drill: 'a seed drill',
+  combine_harvester: 'a combine harvester',
+  rice_transplanting: 'a rice transplanting crew',
+  picking_labour: 'enough hands for picking',
+  orchard_commitment: 'land free for trees for 5+ years',
+  daily_market_access: 'a market every few days',
+}
+
+const STRATEGY_REASON: Record<string, string> = {
+  water_saving: 'Best water-saving option',
+  soil_building: 'Best soil-building option',
+  income: 'Best income option',
+  resilience: 'Best option for steady harvests',
+  diversified: 'Best mixed option',
+}
+
+function mockFailures(r: RotationScore, c: FarmConstraints): string[] {
+  const out: string[] = []
+  const gap = r.mean_irrigation_gap_mm
+  // gap is a YEARLY total over both crop seasons; the farmer's water is PER SEASON (demo: 2 seasons a year).
+  if (isNum(c.water_available_mm) && isNum(gap) && gap > c.water_available_mm * 2) {
+    out.push(
+      `Needs about ${Math.round(gap)} mm of watering a year; you can give about ${Math.round(c.water_available_mm * 2)} mm a year (${Math.round(c.water_available_mm)} mm per season).`,
+    )
+  }
+  if (isNum(c.min_income_usd_ha) && isNum(r.annual_value_usd_ha) && r.annual_value_usd_ha < c.min_income_usd_ha) {
+    out.push(
+      `Expected sales of about $${Math.round(r.annual_value_usd_ha)} per hectare are below the $${Math.round(c.min_income_usd_ha)} you need.`,
+    )
+  }
+  if (isNum(c.max_bad_seasons_in_10) && isNum(r.scores?.resilience)) {
+    const bad = Math.round((100 - r.scores.resilience) / 10)
+    if (bad > c.max_bad_seasons_in_10) out.push(`About ${bad} bad seasons in 10 in the past; you can accept ${c.max_bad_seasons_in_10}.`)
+  }
+  const missing = c.unavailable_equipment ?? []
+  if (missing.length) {
+    const label = r.label.toLowerCase()
+    const needs = new Set<EquipmentId>()
+    for (const [crop, eq] of Object.entries(EQUIPMENT_BY_CROP)) if (label.includes(crop)) eq.forEach((e) => needs.add(e))
+    for (const e of missing) if (needs.has(e)) out.push(`Needs ${EQUIPMENT_WORDS[e]}, which you said you do not have.`)
+  }
+  return out
+}
+
+/** Mark rotations that break the farmer's limits and rebuild the shortlist (current + best fitting per strategy). */
+export function applyMockConstraints<T extends CompareResponse>(resp: T, constraints: FarmConstraints | undefined): T {
+  const c = constraints ?? {}
+  const checked = resp.rotations.map((r) => {
+    const failures = mockFailures(r, c)
+    return { ...r, fits_constraints: failures.length === 0, constraint_failures: failures }
+  })
+  const bestByStrategy = new Map<string, string>()
+  for (const r of [...checked].sort((a, b) => a.rank - b.rank)) {
+    if (r.is_existing || !r.fits_constraints) continue
+    if (!bestByStrategy.has(r.strategy_type)) bestByStrategy.set(r.strategy_type, r.rotation_id)
+  }
+  const rotations = checked.map((r) => {
+    const best = bestByStrategy.get(r.strategy_type) === r.rotation_id
+    return {
+      ...r,
+      shortlisted: r.is_existing || best,
+      shortlist_reason: r.is_existing
+        ? 'Your current rotation'
+        : best
+          ? (STRATEGY_REASON[r.strategy_type] ?? 'Best of its kind')
+          : null,
+    }
+  })
+  return {
+    ...resp,
+    rotations,
+    total_candidates: resp.total_candidates ?? rotations.length,
+    constraints_applied: c,
   }
 }

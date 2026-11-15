@@ -5,6 +5,8 @@ import DataQualityBadge from './DataQualityBadge'
 import IllustrativeBadge from './IllustrativeBadge'
 import { NO_OBSERVATION, formatDate, formatValue } from '../lib/honesty/format'
 import { NOW_THRESHOLDS, assessNow, readNow, type NowStatus } from '../lib/honesty/nowStatus'
+import { Term } from './ui/Term'
+import type { GlossaryId } from '../lib/glossary'
 import { badgeBase, badgeTone, cx, surface, tx, type BadgeTone } from '../lib/ui5/styles'
 
 export interface NowCardProps {
@@ -27,6 +29,7 @@ const SOURCE_NAME: Record<SourceKey, string> = { power: 'NASA POWER', smap: 'SMA
 
 interface Metric {
   label: string
+  term?: GlossaryId
   value: number | null
   unit?: string
   digits: number
@@ -46,8 +49,8 @@ export default function NowCard({ now, dataQuality, renderBadge, className }: No
     { label: 'Rain, last 30 days', value: v.rain_30d_mm, unit: 'mm', digits: 1, source: 'power', Icon: CloudRain },
     { label: 'Mean temperature, 7 days', value: v.mean_temp_7d_c, unit: '°C', digits: 1, source: 'power', Icon: Thermometer },
     { label: 'Max temperature, 7 days', value: v.max_temp_7d_c, unit: '°C', digits: 1, source: 'power', Icon: Thermometer },
-    { label: 'Root-zone moisture', value: v.rootzone_latest_m3m3, unit: 'm³/m³', digits: 3, source: 'smap', Icon: Droplets },
-    { label: 'NDVI (vegetation)', value: v.ndvi_latest, digits: 2, source: 'modis', Icon: Leaf },
+    { label: 'Root-zone moisture', term: 'rootzone', value: v.rootzone_latest_m3m3, unit: 'm³/m³', digits: 3, source: 'smap', Icon: Droplets },
+    { label: 'NDVI (vegetation)', term: 'ndvi', value: v.ndvi_latest, digits: 2, source: 'modis', Icon: Leaf },
   ]
 
   const statusStyle = status ? STATUS_STYLE[status] : null
@@ -102,7 +105,7 @@ export default function NowCard({ now, dataQuality, renderBadge, className }: No
             >
               <dt className={cx('flex items-center gap-2 font-semibold', tx.label, tx.fg2)}>
                 <m.Icon size={16} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
-                {m.label}
+                {m.term ? <Term id={m.term}>{m.label}</Term> : m.label}
               </dt>
               <dd className="m-0 flex flex-wrap items-center justify-between gap-2">
                 <span

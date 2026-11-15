@@ -1,4 +1,5 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Eye, EyeOff } from 'lucide-react'
+import Term from '../ui/Term'
 import type { RotationScore } from '../../types/api'
 import { CHART_COLORS } from '../../lib/charts/tokens'
 import { Badge, Marker } from '../../lib/ui4/primitives'
@@ -15,10 +16,18 @@ export default function RotationLeaderboard({
   rotations,
   selectedId,
   onSelect,
+  showAll,
+  onToggleAll,
+  totalCount,
 }: {
   rotations: RotationScore[]
   selectedId: string | null
   onSelect: (id: string) => void
+  /** Shortlist mode: whether every rotation is listed. Leave undefined when there is no shortlist. */
+  showAll?: boolean
+  onToggleAll?: () => void
+  /** Number of rotations behind "Show all N rotations". */
+  totalCount?: number
 }) {
   const comps = scoredComponents(rotations)
   const four = comps.length === 4
@@ -82,12 +91,25 @@ export default function RotationLeaderboard({
                   <span className={cx('truncate font-semibold', type.body, fg.fg)}>{r.label}</span>
                   <span className="flex flex-wrap items-center gap-1.5">
                     {r.is_existing && <Badge tone="neutral">Your current</Badge>}
+                    {r.shortlist_reason && !r.is_existing && <Badge tone="accent">{r.shortlist_reason}</Badge>}
+                    {r.fits_constraints === false && <Badge tone="danger">Doesn't fit your farm</Badge>}
                     <span className={cx(type.label, fg.fg3)}>{strategyLabel(r.strategy_type)}</span>
                     <span className={cx(type.label, fg.fg3)} aria-hidden="true">·</span>
                     <span className={cx(type.label, CONF_TONE[r.confidence] === 'accent' ? fg.accent : CONF_TONE[r.confidence] === 'warn' ? fg.demo : fg.danger)}>
                       {r.confidence.toLowerCase()} confidence
                     </span>
                   </span>
+                  {r.fits_constraints === false && (r.constraint_failures?.length ?? 0) > 0 && (
+                    <span className={cx('mt-1 flex flex-col gap-0.5 rounded-lg bg-[rgba(253,164,175,0.10)] px-2 py-1.5 text-[13px]', fg.fg2)}>
+                      <span className={cx('font-semibold', fg.danger)}>Doesn't fit your farm because:</span>
+                      {r.constraint_failures!.map((f) => (
+                        <span key={f} className="flex gap-1.5">
+                          <span aria-hidden="true">•</span>
+                          <span>{f}</span>
+                        </span>
+                      ))}
+                    </span>
+                  )}
                 </span>
                 <ChevronRight
                   size={20}
@@ -127,6 +149,25 @@ export default function RotationLeaderboard({
           )
         })}
       </ol>
+      <p className={cx('m-0 flex items-center gap-1 px-1', type.label, fg.fg3)}>
+        Thin line on each bar: the score <Term id="percentile_range">range</Term> across past years.
+      </p>
+      {onToggleAll && showAll !== undefined && (
+        <button
+          type="button"
+          onClick={onToggleAll}
+          aria-expanded={showAll}
+          className={cx(
+            'inline-flex min-h-[44px] items-center gap-2 self-start rounded-[var(--radius-control,1rem)] border px-4 font-semibold',
+            'border-[color:var(--color-control-border,rgba(190,242,220,0.45))] hover:bg-[rgba(255,255,255,0.08)]',
+            type.label,
+            fg.fg,
+          )}
+        >
+          {showAll ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          {showAll ? 'Show the shortlist only' : `Show all ${totalCount ?? rotations.length} rotations`}
+        </button>
+      )}
     </div>
   )
 }

@@ -15,6 +15,7 @@ import { CHART_COLORS, CHART_DEFAULTS, type MarkerShape } from '../../lib/charts
 import { Card, LegendRow } from '../../lib/ui4/primitives'
 import { cx, fg, type } from '../../lib/ui4/cls'
 import { monthlyClimate } from './shared'
+import { Term } from '../ui/Term'
 
 const ETO = '#fbbf24'
 const TMAX = '#fb923c'
@@ -34,8 +35,8 @@ function Frame({
   summary,
   children,
 }: {
-  title: string
-  note: string
+  title: ReactNode
+  note: ReactNode
   legend: { label: string; color: string; shape: MarkerShape }[]
   aria: string
   summary: string
@@ -76,11 +77,20 @@ export default function ClimatePanel({ profile }: { profile: FieldProfile }) {
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       <Frame
-        title="Rain vs crop-water demand"
+        title={
+          <>
+            Rain vs crop-water demand <Term id="eto" iconOnly />
+          </>
+        }
         note={
-          hasEto
-            ? `Monthly mean rain against FAO-56 reference evapotranspiration (ETo). Months where the line sits above the bars need stored water or irrigation${deficitMonths.length ? `: ${deficitMonths.length} of 12 here` : ''}.`
-            : 'Monthly mean rain. Reference ET is unavailable for this location.'
+          hasEto ? (
+            <>
+              Monthly mean rain against FAO-56 reference <Term id="eto">evapotranspiration (ETo)</Term>. Months where the line
+              sits above the bars need stored water or irrigation{deficitMonths.length ? `: ${deficitMonths.length} of 12 here` : ''}.
+            </>
+          ) : (
+            'Monthly mean rain. Reference ET is unavailable for this location.'
+          )
         }
         legend={[
           { label: 'Rain', color: CHART_COLORS.water, shape: 'square' },
@@ -118,7 +128,12 @@ export default function ClimatePanel({ profile }: { profile: FieldProfile }) {
 
       <Frame
         title="Temperature through the year"
-        note="Shaded band runs from mean daily minimum to mean daily maximum; the line is the monthly mean."
+        note={
+          <>
+            Shaded band runs from mean daily minimum to mean daily maximum; the line is the monthly mean. Hot maximums bring{' '}
+            <Term id="heat_days">heat days</Term>; minimums near 0 °C bring <Term id="frost_risk">frost risk</Term>.
+          </>
+        }
         legend={[
           { label: 'Mean max', color: TMAX, shape: 'line' },
           { label: 'Mean', color: CHART_COLORS.fg, shape: 'dashed' },

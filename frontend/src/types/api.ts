@@ -35,6 +35,7 @@ export interface MonthRecord {
   smap_rootzone_m3m3?: number | null
   ndvi_mean?: number | null
   eto_mm?: number | null // FAO-56 reference ET, monthly total (live POWER)
+  heavy_rain_days_ge_25mm?: number | null // days with rain >= 25 mm in the month
 }
 
 export interface FieldProfile {
@@ -62,6 +63,59 @@ export interface Priorities {
 export interface Scenario {
   rain_multiplier: number // 0.6 to 1.4
   temp_delta_c: number // 0 to 4
+}
+
+/** Equipment / labour / commitments the farmer does NOT have (backend FarmConstraints). */
+export type EquipmentId =
+  | 'seed_drill'
+  | 'combine_harvester'
+  | 'rice_transplanting'
+  | 'picking_labour'
+  | 'orchard_commitment'
+  | 'daily_market_access'
+
+/** Farmer limits in real units. The client converts units before sending; null = not given. */
+export interface FarmConstraints {
+  water_available_mm?: number | null // irrigation per crop season, depth over the field (mm)
+  min_income_usd_ha?: number | null // minimum gross value per ha per year (USD)
+  max_bad_seasons_in_10?: number | null // risk tolerance 0..10
+  unavailable_equipment?: EquipmentId[]
+}
+
+/** One calendar month of a rotation's typical year ("Your farm's year"). */
+export interface FarmMonth {
+  month: number // 1..12
+  crops: string[]
+  cover_crop: boolean
+  bare: boolean
+  stage?: 'sowing' | 'growing' | 'flowering' | 'harvest' | null
+  heat_risk?: number | null // 0..1 share of past years
+  frost_risk?: number | null
+  dry_risk?: number | null
+  heavy_rain_risk?: number | null
+  erosion_alert: boolean
+  ndvi?: number | null // observed MODIS greenness (site-level)
+  opportunity: boolean
+}
+
+export interface NdviStatus {
+  state: 'ready' | 'running' | 'failed' | 'not_configured' | 'disabled' | 'not_started'
+  provider?: string | null
+  message: string
+  pixel_key: string
+  attempts?: string[]
+  elapsed_s?: number
+  merged?: boolean
+  summary?: {
+    ndvi_monthly_mean: (number | null)[]
+    bare_days_est_mean?: number | null
+    ndvi_latest?: number | null
+    ndvi_latest_date?: string | null
+    period_start?: string | null
+    period_end?: string | null
+    n_composites_good: number
+    provider: string
+  } | null
 }
 
 export interface CompareRequest {
@@ -123,6 +177,15 @@ export interface RotationScore {
   evidence: EvidenceItem[]
   insights?: Insight[]
   annual_value_usd_ha?: number | null
+  // Deterministic shortlist: current rotation + best option of each strategy type that fits.
+  shortlisted?: boolean
+  shortlist_reason?: string | null
+  fits_constraints?: boolean
+  constraint_failures?: string[]
+  farm_year?: FarmMonth[] // 12 entries, Jan..Dec
+  key_moments?: string[]
+  mean_water_need_mm?: number | null
+  mean_irrigation_gap_mm?: number | null
 }
 
 export interface CompareResponse {
@@ -133,6 +196,8 @@ export interface CompareResponse {
   data_quality: Record<string, Quality>
   disclaimer: string
   income_status?: IncomeStatus | null
+  total_candidates?: number | null
+  constraints_applied?: FarmConstraints | null
 }
 
 // ---- Dynamic GPS-location analysis (POST /api/v1/locations/compare) ----
@@ -143,6 +208,7 @@ export interface LocationCompareRequest {
   current_crop?: string | null
   priorities?: Priorities
   scenario?: Scenario
+  constraints?: FarmConstraints
 }
 
 export interface LocationInfo {
@@ -182,6 +248,7 @@ export interface LocationCompareResponse extends CompareResponse {
     stale: boolean
     power_parameters?: string[]
     geospatial?: { soil?: GeoProvider; terrain?: GeoProvider }
+    ndvi?: NdviStatus
   }
   profile: FieldProfile // live profile: monthly climate, climatology, soil, terrain, now
   now_status: NowStatusValue

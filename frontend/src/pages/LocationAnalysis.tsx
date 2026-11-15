@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
   BarChart3,
+  CalendarDays,
   CloudSun,
   Database,
   Layers,
@@ -18,11 +19,12 @@ import {
 } from 'lucide-react'
 import { api } from '../api/client'
 import Disclaimer from '../components/Disclaimer'
-import PriorityPanel from '../components/PriorityPanel'
-import ScenarioPanel from '../components/ScenarioPanel'
+import FarmInputsPanel from '../components/inputs/FarmInputsPanel'
 import ScoreRadar from '../components/ScoreRadar'
 import ClimatePanel from '../components/results/ClimatePanel'
 import DataSourcesPanel from '../components/results/DataSourcesPanel'
+import FarmYearCard, { NdviStatusNote } from '../components/results/FarmYearCard'
+import FieldRiskMap from '../components/results/FieldRiskMap'
 import KpiGrid from '../components/results/KpiGrid'
 import NowPanel from '../components/results/NowPanel'
 import RecommendationHero from '../components/results/RecommendationHero'
@@ -33,7 +35,9 @@ import WaterBalanceChart from '../components/results/WaterBalanceChart'
 import { ResultSection, useDebounced } from '../components/results/shared'
 import { Badge, Card } from '../lib/ui4/primitives'
 import { cx, fg, surface, tabular, type } from '../lib/ui4/cls'
-import { useAppStore } from '../store/useAppStore'
+import { useFarmInputs } from '../hooks/useFarmInputs'
+import { useNdviPolling } from '../hooks/useNdviPolling'
+import { DEFAULT_INPUTS, toConstraints, toPriorities, toScenario } from '../store/farmInputs'
 import type { LocationCompareResponse, RotationScore } from '../types/api'
 
 const fieldCls =
@@ -49,6 +53,7 @@ const IRRIGATION: { v: Irrigation; label: string }[] = [
 
 const NAV = [
   { id: 'res-summary', label: 'Summary', icon: Sparkles },
+  { id: 'res-year', label: 'Year', icon: CalendarDays },
   { id: 'res-compare', label: 'Compare', icon: ListOrdered },
   { id: 'res-details', label: 'Details', icon: BarChart3 },
   { id: 'res-climate', label: 'Climate', icon: CloudSun },
@@ -191,12 +196,15 @@ export default function LocationAnalysis() {
   const fieldName = params.get('name')
   const fieldAreaHa = Number(params.get('area_ha'))
   const hasField = params.get('field') !== null && Number.isFinite(fieldAreaHa) && fieldAreaHa > 0
+  const urlAreaHa = Number.isFinite(fieldAreaHa) && fieldAreaHa > 0 ? fieldAreaHa : null
   const [irrigation, setIrrigation] = useState<Irrigation>(initIrr)
   const [rotationId, setRotationId] = useState(initRot)
   const [submitted, setSubmitted] = useState<{ rotationId: string; irrigation: Irrigation } | null>(
     initRot ? { rotationId: initRot, irrigation: initIrr } : null,
   )
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
+  const { inputs, update, setInputs } = useFarmInputs()
 
   const region = useQuery({
     queryKey: ['location-region', lat, lon],
@@ -206,19 +214,26 @@ export default function LocationAnalysis() {
   })
   const regionRotations = region.data?.rotations ?? []
 
-  // Sliders re-score live: cached NASA data makes a re-score ~0.4 s and it does not count against the rate limit.
-  const priorities = useDebounced(useAppStore((s) => s.priorities), 450)
-  const scenario = useDebounced(useAppStore((s) => s.scenario), 450)
+  // Farm inputs re-score live: cached NASA data makes a re-score ~0.4 s and it does not count against the rate limit.
+  const liveRequest = useMemo(
+    () => ({
+      priorities: toPriorities(inputs.goals),
+      scenario: toScenario(inputs),
+      constraints: toConstraints(inputs, urlAreaHa),
+    }),
+    [inputs, urlAreaHa],
+  )
+  const requestKey = useDebounced(JSON.stringify(liveRequest), 600)
+  const farmRequest = useMemo(() => JSON.parse(requestKey) as typeof liveRequest, [requestKey])
 
   const compare = useQuery({
-    queryKey: ['location-compare', lat, lon, submitted, priorities, scenario],
+    queryKey: ['location-compare', lat, lon, submitted, requestKey],
     queryFn: () =>
       api.compareLocation({
         location: { lat, lon },
         irrigation: submitted!.irrigation,
         current_rotation_id: submitted!.rotationId,
-        priorities,
-        scenario,
+        ...farmRequest,
       }),
     enabled: validCoords && submitted !== null,
     placeholderData: keepPreviousData,
@@ -229,11 +244,27 @@ export default function LocationAnalysis() {
   const data: LocationCompareResponse | undefined = compare.data
   const ranked = useMemo(() => [...(data?.rotations ?? [])].sort((a, b) => a.rank - b.rank), [data])
   const current = ranked.find((r) => r.is_existing)
-  const selected = ranked.find((r) => r.rotation_id === selectedId) ?? ranked[0]
 
-  useEffect(() => {
-    if (ranked.length && !ranked.some((r) => r.rotation_id === selectedId)) setSelectedId(ranked[0].rotation_id)
-  }, [ranked, selectedId])
+  // Shortlist: current rotation + best fitting option of each kind. Older backends send no shortlist: show all.
+  const hasShortlist = ranked.some((r) => typeof r.shortlisted === 'boolean') && ranked.some((r) => r.shortlisted)
+  const shortlist = hasShortlist ? ranked.filter((r) => r.shortlisted) : ranked
+  const visible = showAll ? ranked : shortlist
+  const canToggle = hasShortlist && shortlist.length < ranked.length
+  const best = visible.find((r) => r.fits_constraints !== false) ?? visible[0]
+  const selected = visible.find((r) => r.rotation_id === selectedId) ?? best
+  const yearAlternative =
+    selected && !selected.is_existing ? selected : visible.find((r) => !r.is_existing && r.fits_constraints !== false)
+
+  const refetchCompare = compare.refetch
+  const onNdviReady = useCallback(() => {
+    void refetchCompare()
+  }, [refetchCompare])
+  const ndvi = useNdviPolling(lat, lon, data?.data_retrieval.ndvi, onNdviReady)
+  // Greenness row uses farm_year[].ndvi only (filled by the backend from real MODIS data), no site-level fallback.
+  const ndviSummary = null
+  const rainMean = data?.profile.climatology.rain_annual_mm_mean
+  const annualRainMm = typeof rainMean === 'number' && Number.isFinite(rainMean) ? rainMean : null
+  const incomeNote = data?.income_status && !data.income_status.scored ? data.income_status.note : null
 
   const dirty = submitted !== null && (submitted.rotationId !== rotationId || submitted.irrigation !== irrigation)
   const firstLoad = compare.isFetching && !data
@@ -288,7 +319,8 @@ export default function LocationAnalysis() {
             <Badge tone="neutral">
               {data.profile.n_years} years · {data.data_retrieval.source === 'cache' ? 'cached' : 'just fetched'}
             </Badge>
-            {data.scenario_applied && <Badge tone="warn">Simulated scenario</Badge>}
+            {data.scenario_applied && <Badge tone="warn">"What if" weather</Badge>}
+            {ndvi.polling && <NdviStatusNote status={ndvi.status} polling />}
             {refreshing && (
               <Badge tone="info" icon={Loader2}>
                 Updating
@@ -299,12 +331,12 @@ export default function LocationAnalysis() {
       </header>
 
       {hasField && (
-        <FieldBanner name={fieldName} areaHa={fieldAreaHa} best={ranked[0]} current={current} incomeScored={!!data?.income_status?.scored} />
+        <FieldBanner name={fieldName} areaHa={fieldAreaHa} best={best} current={current} incomeScored={!!data?.income_status?.scored} />
       )}
 
       <div className="grid items-start gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
         {/* ---------------------------------------------------------------- controls */}
-        <aside className="flex flex-col gap-4 xl:sticky xl:top-6">
+        <aside className="flex min-w-0 flex-col gap-4">
           <Card title="About your field">
             <form
               className="flex flex-col gap-4"
@@ -378,12 +410,17 @@ export default function LocationAnalysis() {
             </form>
           </Card>
 
-          {data && (
-            <>
-              <PriorityPanel incomeNote={data.income_status && !data.income_status.scored ? data.income_status.note : null} />
-              <ScenarioPanel scenarioApplied={data.scenario_applied} />
-            </>
-          )}
+          <FarmInputsPanel
+            inputs={inputs}
+            update={update}
+            reset={() => setInputs(DEFAULT_INPUTS)}
+            urlAreaHa={urlAreaHa}
+            irrigationLabel={IRRIGATION.find((i) => i.v === irrigation)?.label ?? irrigation}
+            annualRainMm={annualRainMm}
+            incomeNote={incomeNote}
+            scenarioApplied={data?.scenario_applied}
+            live={submitted !== null}
+          />
         </aside>
 
         {/* ----------------------------------------------------------------- results */}
@@ -434,19 +471,53 @@ export default function LocationAnalysis() {
                 title="Summary"
                 subtitle={`${data.location.region_name} · NASA POWER ${data.data_retrieval.period_start.slice(0, 4)} to ${data.data_retrieval.period_end.slice(0, 4)}`}
               >
-                <RecommendationHero best={ranked[0]} current={current} total={ranked.length} onDetails={openDetails} />
+                <RecommendationHero
+                  best={best}
+                  current={current}
+                  total={data.total_candidates ?? ranked.length}
+                  onDetails={openDetails}
+                />
                 <KpiGrid profile={data.profile} />
               </ResultSection>
+
+              {ranked.some((r) => r.farm_year?.length === 12) && (
+                <ResultSection
+                  id="res-year"
+                  title="Your farm's year"
+                  subtitle="Month by month: what grows, when the soil is bare, and when weather risks hit."
+                >
+                  <FarmYearCard
+                    current={current}
+                    alternative={yearAlternative}
+                    options={visible}
+                    onPickAlternative={setSelectedId}
+                    ndviFallback={ndviSummary}
+                    ndviStatus={ndvi.status}
+                    ndviPolling={ndvi.polling}
+                  />
+                </ResultSection>
+              )}
 
               <ResultSection
                 id="res-compare"
                 title="Compare rotations"
-                subtitle="Select a row to open its full assessment. Scores use your priority weights."
+                subtitle={
+                  hasShortlist && !showAll
+                    ? 'Your shortlist: your current rotation and the best option of each kind that fits your farm. Select a row for details.'
+                    : 'Select a row to open its full assessment. Scores follow the order of what matters most to you.'
+                }
               >
-                <RotationLeaderboard rotations={ranked} selectedId={selected.rotation_id} onSelect={openDetails} />
+                <RotationLeaderboard
+                  rotations={visible}
+                  selectedId={selected.rotation_id}
+                  onSelect={openDetails}
+                  showAll={canToggle ? showAll : undefined}
+                  onToggleAll={canToggle ? () => setShowAll((v) => !v) : undefined}
+                  totalCount={data.total_candidates ?? ranked.length}
+                />
                 <div className="grid gap-4 2xl:grid-cols-2">
-                  <ScoreRadar rotations={ranked} />
-                  <WaterBalanceChart rotations={ranked} />
+                  <ScoreRadar rotations={visible} />
+                  <WaterBalanceChart rotations={visible} />
                 </div>
               </ResultSection>
 
@@ -463,6 +534,12 @@ export default function LocationAnalysis() {
               </ResultSection>
 
               <ResultSection id="res-site" title="Site conditions" subtitle="Soil, terrain and the last 30 days.">
+                <FieldRiskMap
+                  data={data}
+                  rotationId={current?.rotation_id ?? submitted?.rotationId}
+                  fieldId={params.get('field')}
+                  areaHa={hasField ? fieldAreaHa : null}
+                />
                 <SiteConditions
                   profile={data.profile}
                   texture={data.location.soil_texture_class}

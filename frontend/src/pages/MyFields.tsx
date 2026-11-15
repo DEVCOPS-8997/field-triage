@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Droplets, MapPin, Pencil, Plus, Ruler } from 'lucide-react'
-import { useMyFields, type MyField } from '../api/account'
+import { equipParam, useMyFields, type MyField } from '../api/account'
 import PageHeader from '../components/shell/PageHeader'
 import { Notice } from '../components/ui/Notice'
 import { Skeleton } from '../components/ui/Skeleton'
@@ -41,7 +41,8 @@ function analyzeHref(f: MyField) {
   return (
     `/location?lat=${f.center.lat.toFixed(5)}&lon=${f.center.lon.toFixed(5)}&field=${f.id}&name=${encodeURIComponent(f.name)}` +
     `&area_ha=${f.area_ha.toFixed(4)}&irrigation=${f.irrigation}` +
-    (f.current_rotation_id ? `&rotation=${f.current_rotation_id}` : '')
+    (f.current_rotation_id ? `&rotation=${f.current_rotation_id}` : '') +
+    equipParam(f.unavailable_equipment)
   )
 }
 

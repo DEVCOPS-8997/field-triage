@@ -16,6 +16,7 @@ import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from './cn'
 import { Skeleton } from './Skeleton'
+import { useI18n } from '../../lib/i18n'
 
 export interface KPITileProps {
   icon: LucideIcon
@@ -29,6 +30,7 @@ export interface KPITileProps {
 }
 
 export function KPITile({ icon: Icon, label, value, unit, size = 'lg', badge, isLoading, className }: KPITileProps) {
+  const { t } = useI18n()
   if (isLoading) return <Skeleton preset="tile" className={className} />
   const isText = typeof value === 'string' || typeof value === 'number'
   const title = isText ? `${value}${unit ? ` ${unit}` : ''}` : undefined
@@ -46,7 +48,7 @@ export function KPITile({ icon: Icon, label, value, unit, size = 'lg', badge, is
       <div className="w-full min-w-0 flex-1 sm:w-auto">
         <p className="m-0 truncate text-label font-normal text-fg-2">{label}</p>
         {value === null || value === undefined ? (
-          <p className="m-0 text-label font-normal text-fg-3">unavailable</p>
+          <p className="m-0 text-label font-normal text-fg-3">{t('common.unavailable')}</p>
         ) : isText ? (
           <p
             title={title}
@@ -56,13 +58,13 @@ export function KPITile({ icon: Icon, label, value, unit, size = 'lg', badge, is
             )}
           >
             {value}
-            {unit && <span className="ml-1 font-sans text-label font-normal text-fg-2">{unit}</span>}
+            {unit && <span className="ms-1 font-sans text-label font-normal text-fg-2">{unit}</span>}
           </p>
         ) : (
           <div className="pt-1">{value}</div>
         )}
       </div>
-      {badge && <div className="absolute bottom-2 right-2">{badge}</div>}
+      {badge && <div className="absolute bottom-2 end-2">{badge}</div>}
     </div>
   )
 }

@@ -13,7 +13,10 @@ from app.models.schemas import (
     CompareRequest,
     CompareResponse,
     EvidenceItem,
+    FarmConstraints,
+    FarmMonth,
     FieldInfo,
+    LocationCompareRequest,
     FieldProfile,
     Location,
     MonthRecord,
@@ -23,6 +26,9 @@ from app.models.schemas import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# Optional backend fields added after the last frontend sync (none pending: api.ts is in sync).
+PENDING_FRONTEND_MIRROR: dict[str, set[str]] = {}
 
 
 def test_frozen_schema_exact_field_names() -> None:
@@ -52,6 +58,7 @@ def test_frozen_schema_exact_field_names() -> None:
         "smap_rootzone_m3m3",
         "ndvi_mean",
         "eto_mm",
+        "heavy_rain_days_ge_25mm",
     ]
     assert list(FieldProfile.model_fields.keys()) == [
         "field_id",
@@ -109,6 +116,14 @@ def test_frozen_schema_exact_field_names() -> None:
         "evidence",
         "insights",
         "annual_value_usd_ha",
+        "shortlisted",
+        "shortlist_reason",
+        "fits_constraints",
+        "constraint_failures",
+        "farm_year",
+        "key_moments",
+        "mean_water_need_mm",
+        "mean_irrigation_gap_mm",
     ]
     assert list(CompareResponse.model_fields.keys()) == [
         "field_id",
@@ -118,7 +133,30 @@ def test_frozen_schema_exact_field_names() -> None:
         "data_quality",
         "disclaimer",
         "income_status",
+        "total_candidates",
+        "constraints_applied",
     ]
+    assert list(FarmConstraints.model_fields.keys()) == [
+        "water_available_mm",
+        "min_income_usd_ha",
+        "max_bad_seasons_in_10",
+        "unavailable_equipment",
+    ]
+    assert list(FarmMonth.model_fields.keys()) == [
+        "month",
+        "crops",
+        "cover_crop",
+        "bare",
+        "stage",
+        "heat_risk",
+        "frost_risk",
+        "dry_risk",
+        "heavy_rain_risk",
+        "erosion_alert",
+        "ndvi",
+        "opportunity",
+    ]
+    assert list(LocationCompareRequest.model_fields.keys())[-1] == "constraints"
 
 
 def test_mutable_defaults_are_isolated() -> None:
@@ -219,6 +257,10 @@ def test_typescript_contract_mirrors_frozen_pydantic_models() -> None:
         assert block_match is not None, f"Missing interface {interface_name} in api.ts"
         block_body = block_match.group(1)
         ts_fields = re.findall(r"^\s*([a-zA-Z0-9_]+)\??\s*:", block_body, re.MULTILINE)
-        assert ts_fields == list(model_cls.model_fields.keys()), (
+        expected = [
+            f for f in model_cls.model_fields
+            if f in ts_fields or f not in PENDING_FRONTEND_MIRROR.get(interface_name, set())
+        ]
+        assert ts_fields == expected, (
             f"Field mismatch between Pydantic {interface_name} and TypeScript api.ts"
         )

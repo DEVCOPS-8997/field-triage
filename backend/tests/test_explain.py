@@ -57,9 +57,10 @@ def test_explanations_trace_to_calculated_numbers_and_flag_demo_provenance(
     # Alternative `why` compares against the current rotation by name
     assert existing.label in water_alt.why[0]
 
-    # Chickpea's cited net nitrogen (35 kg/ha) is a benefit with its source attached
+    # Chickpea's cited net nitrogen is a benefit with its source attached
+    n_chickpea = real_catalog.crops_by_id["chickpea"]["n_fix_kg_ha"]
     n_ins = next(i for i in water_alt.insights if i.topic == "nitrogen" and i.kind == "benefit")
-    assert "35 kg" in n_ins.detail and n_ins.source and n_ins.source_url
+    assert f"{n_chickpea:.0f} kg" in n_ins.detail and n_ins.source and n_ins.source_url
     # Cotton-Wheat has no legume -> flagged as a risk
     assert any(i.topic == "nitrogen" and i.kind == "risk" for i in existing.insights)
 
@@ -80,12 +81,12 @@ def test_missing_pillars_and_gwetroot_fallback_flagged_accurately(
     real_catalog: Any,
 ) -> None:
     """Verify unavailable SMAP/MODIS/Terrain are reported in `data_gaps` and null in `evidence`."""
-    f05 = real_catalog.fields_by_id["F05"]
-    raw_meta = real_catalog.raw_fields_by_id["F05"]
+    f05 = real_catalog.fields_by_id["F01"]
+    raw_meta = real_catalog.raw_fields_by_id["F01"]
 
     sparse_dict = make_synthetic_profile_dict(
-        field_id="F05",
-        region_id="us_midwest",
+        field_id="F01",
+        region_id="pk_punjab",
         data_mode="observed",
         pillar_qualities={
             "power": "observed",

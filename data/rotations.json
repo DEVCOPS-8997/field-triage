@@ -1,12 +1,488 @@
 [
-{"rotation_id":"rot_pk_cotton_wheat","label":"Cotton - Wheat","strategy_type":"conventional","region_id":"pk_punjab","sequence":["cotton","wheat"],"cover_crop":null,"notes":"Common Punjab belt system"},
-{"rotation_id":"rot_pk_rice_wheat","label":"Rice - Wheat","strategy_type":"conventional","region_id":"pk_punjab","sequence":["rice","wheat"],"cover_crop":null,"notes":"High water demand"},
-{"rotation_id":"rot_pk_sorghum_chickpea","label":"Sorghum - Chickpea","strategy_type":"water_saving","region_id":"pk_punjab","sequence":["sorghum","chickpea"],"cover_crop":null,"notes":"Drought tolerant cereal then legume"},
-{"rotation_id":"rot_pk_sorghum_berseem","label":"Sorghum - Berseem Clover","strategy_type":"soil_building","region_id":"pk_punjab","sequence":["sorghum","berseem"],"cover_crop":null,"notes":"Near continuous cover, fodder legume"},
-{"rotation_id":"rot_pk_maize_wheat","label":"Spring Maize - Wheat","strategy_type":"income","region_id":"pk_punjab","sequence":["maize","wheat"],"cover_crop":null,"notes":"Market driven"},
-{"rotation_id":"rot_us_corn_soy","label":"Corn - Soybean","strategy_type":"conventional","region_id":"us_midwest","sequence":["maize","soybean"],"cover_crop":null,"notes":"Midwest standard"},
-{"rotation_id":"rot_us_wheat_sorghum","label":"Wheat - Sorghum","strategy_type":"conventional","region_id":"us_midwest","sequence":["wheat","sorghum"],"cover_crop":null,"notes":"Dryland plains system"},
-{"rotation_id":"rot_us_sorghum_soy","label":"Sorghum - Soybean","strategy_type":"water_saving","region_id":"us_midwest","sequence":["sorghum","soybean"],"cover_crop":null,"notes":"Lower water need than corn"},
-{"rotation_id":"rot_us_corn_soy_rye","label":"Corn - Soybean + Rye Cover","strategy_type":"soil_building","region_id":"us_midwest","sequence":["maize","soybean"],"cover_crop":"cereal_rye","notes":"Winter cover cuts bare days and erosion"},
-{"rotation_id":"rot_us_corn_soy_wheat","label":"Corn - Soybean - Wheat","strategy_type":"income","region_id":"us_midwest","sequence":["maize","soybean","wheat"],"cover_crop":null,"notes":"Three crop diversification"}
+  {
+    "rotation_id": "rot_pk_cotton_wheat",
+    "label": "Cotton - Wheat",
+    "strategy_type": "conventional",
+    "region_id": "pk_punjab",
+    "sequence": ["cotton", "wheat"],
+    "cover_crop": null,
+    "notes": "Dominant Southern Punjab irrigated belt system; late cotton picking often delays wheat sowing"
+  },
+  {
+    "rotation_id": "rot_pk_sindh_cotton_wheat",
+    "label": "Cotton - Wheat (Sindh)",
+    "strategy_type": "conventional",
+    "region_id": "pk_sindh",
+    "sequence": ["cotton", "wheat"],
+    "cover_crop": null,
+    "notes": "Primary Central and Lower Sindh canal-irrigated rotation with earlier spring cotton planting"
+  },
+  {
+    "rotation_id": "rot_pk_rice_wheat",
+    "label": "Rice - Wheat",
+    "strategy_type": "conventional",
+    "region_id": "pk_punjab",
+    "sequence": ["rice", "wheat"],
+    "cover_crop": null,
+    "notes": "High water demand; dominant across Kallar tract in Northeastern Punjab"
+  },
+  {
+    "rotation_id": "rot_pk_sindh_rice_wheat",
+    "label": "Rice - Wheat (Upper Sindh)",
+    "strategy_type": "conventional",
+    "region_id": "pk_sindh",
+    "sequence": ["rice", "wheat"],
+    "cover_crop": null,
+    "notes": "Larkana and Jacobabad irrigated plains system following IRRI-6 or coarse rice"
+  },
+  {
+    "rotation_id": "rot_pk_maize_wheat",
+    "label": "Spring Maize - Wheat",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["maize", "wheat"],
+    "cover_crop": null,
+    "notes": "High-yield market-driven rotation across Sahiwal, Okara, and Pakpattan"
+  },
+  {
+    "rotation_id": "rot_pk_kp_maize_wheat",
+    "label": "Kharif Maize - Wheat",
+    "strategy_type": "conventional",
+    "region_id": "pk_kp",
+    "sequence": ["maize", "wheat"],
+    "cover_crop": null,
+    "notes": "Standard irrigated and sub-humid cereal rotation in Mardan, Swabi, and Peshawar valleys"
+  },
+  {
+    "rotation_id": "rot_pk_sugarcane_wheat",
+    "label": "Sugarcane - Wheat",
+    "strategy_type": "conventional",
+    "region_id": "pk_punjab",
+    "sequence": ["sugarcane", "wheat"],
+    "cover_crop": null,
+    "notes": "Central Punjab sugar mill zone (Faisalabad, Sargodha, Jhang) following plant and ratoon cane"
+  },
+  {
+    "rotation_id": "rot_pk_sindh_sugarcane_wheat",
+    "label": "Autumn Sugarcane - Wheat",
+    "strategy_type": "conventional",
+    "region_id": "pk_sindh",
+    "sequence": ["sugarcane", "wheat"],
+    "cover_crop": null,
+    "notes": "Lower Sindh (Badin, Thatta) heavy-soil rotation with high irrigation requirement"
+  },
+  {
+    "rotation_id": "rot_pk_jute_wheat",
+    "label": "Jute - Wheat",
+    "strategy_type": "conventional",
+    "region_id": "pk_punjab",
+    "sequence": ["jute", "wheat"],
+    "cover_crop": null,
+    "notes": "Riverine and canal-irrigated fiber-grain rotation in Muzaffargarh and Jhang pockets"
+  },
+  {
+    "rotation_id": "rot_pk_sorghum_chickpea",
+    "label": "Sorghum - Chickpea",
+    "strategy_type": "water_saving",
+    "region_id": "pk_punjab",
+    "sequence": ["sorghum", "chickpea"],
+    "cover_crop": null,
+    "notes": "Drought-tolerant cereal followed by nitrogen-fixing winter pulse in Thal and rainfed fringes"
+  },
+  {
+    "rotation_id": "rot_pk_millet_chickpea",
+    "label": "Pearl Millet - Chickpea",
+    "strategy_type": "water_saving",
+    "region_id": "pk_punjab",
+    "sequence": ["pearl_millet", "chickpea"],
+    "cover_crop": null,
+    "notes": "Low-water sandy-soil system across Bhakkar, Layyah, and Mianwali"
+  },
+  {
+    "rotation_id": "rot_pk_groundnut_wheat",
+    "label": "Groundnut - Wheat",
+    "strategy_type": "water_saving",
+    "region_id": "pk_punjab",
+    "sequence": ["groundnut", "wheat"],
+    "cover_crop": null,
+    "notes": "Primary rainfed (Barani) Pothohar plateau rotation across Chakwal, Attock, and Rawalpindi"
+  },
+  {
+    "rotation_id": "rot_pk_groundnut_chickpea",
+    "label": "Groundnut - Chickpea",
+    "strategy_type": "water_saving",
+    "region_id": "pk_punjab",
+    "sequence": ["groundnut", "chickpea"],
+    "cover_crop": null,
+    "notes": "Low-rainfall Barani legume-legume system suited to sandy loam soils"
+  },
+  {
+    "rotation_id": "rot_pk_guar_wheat",
+    "label": "Guarseed - Wheat",
+    "strategy_type": "water_saving",
+    "region_id": "pk_punjab",
+    "sequence": ["guar", "wheat"],
+    "cover_crop": null,
+    "notes": "Arid-zone legume-cereal rotation in Thal desert canal-command fringes"
+  },
+  {
+    "rotation_id": "rot_pk_guar_barley",
+    "label": "Guarseed - Barley",
+    "strategy_type": "water_saving",
+    "region_id": "pk_punjab",
+    "sequence": ["guar", "barley"],
+    "cover_crop": null,
+    "notes": "Ultra-low water requirement rotation for saline and marginal sandy tracts"
+  },
+  {
+    "rotation_id": "rot_pk_sesame_barley",
+    "label": "Sesame - Barley",
+    "strategy_type": "water_saving",
+    "region_id": "pk_sindh",
+    "sequence": ["sesame", "barley"],
+    "cover_crop": null,
+    "notes": "Arid monsoon-dependent oilseed and drought-hardy winter cereal system in Tharparkar"
+  },
+  {
+    "rotation_id": "rot_pk_sesame_wheat",
+    "label": "Sesame - Wheat",
+    "strategy_type": "water_saving",
+    "region_id": "pk_punjab",
+    "sequence": ["sesame", "wheat"],
+    "cover_crop": null,
+    "notes": "Short-duration summer oilseed allowing timely November wheat sowing"
+  },
+  {
+    "rotation_id": "rot_pk_castor_safflower",
+    "label": "Castorseed - Safflower",
+    "strategy_type": "water_saving",
+    "region_id": "pk_sindh",
+    "sequence": ["castor", "safflower"],
+    "cover_crop": null,
+    "notes": "Deep-rooted drought-tolerant oilseed rotation for water-scarce lower Sindh"
+  },
+  {
+    "rotation_id": "rot_pk_sorghum_cumin",
+    "label": "Sorghum - Cumin",
+    "strategy_type": "water_saving",
+    "region_id": "pk_balochistan",
+    "sequence": ["sorghum", "cumin"],
+    "cover_crop": null,
+    "notes": "Low-ET upland valley system pairing summer fodder/grain with high-value winter spice"
+  },
+  {
+    "rotation_id": "rot_pk_sorghum_berseem",
+    "label": "Sorghum - Berseem Clover",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["sorghum", "berseem"],
+    "cover_crop": null,
+    "notes": "Near-continuous soil cover and high biological nitrogen fixation for dairy belts"
+  },
+  {
+    "rotation_id": "rot_pk_rice_berseem",
+    "label": "Rice - Berseem Clover",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["rice", "berseem"],
+    "cover_crop": null,
+    "notes": "Restores soil organic matter and suppresses Phalaris minor weeds in rice tracts"
+  },
+  {
+    "rotation_id": "rot_pk_cotton_wheat_mung",
+    "label": "Cotton - Wheat + Mungbean Catch",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["cotton", "wheat"],
+    "cover_crop": "mungbean",
+    "notes": "65-day Zaid mungbean sown after April wheat harvest fixes nitrogen before May cotton"
+  },
+  {
+    "rotation_id": "rot_pk_rice_chickpea",
+    "label": "Rice - Chickpea (Dubari)",
+    "strategy_type": "soil_building",
+    "region_id": "pk_sindh",
+    "sequence": ["rice", "chickpea"],
+    "cover_crop": null,
+    "notes": "Residual soil moisture relay system in Upper Sindh requiring minimal winter irrigation"
+  },
+  {
+    "rotation_id": "rot_pk_rice_lentil",
+    "label": "Rice - Lentil (Masoor)",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["rice", "lentil"],
+    "cover_crop": null,
+    "notes": "Low-input winter pulse rotation in Sialkot, Narowal, and Gujrat rice tracts"
+  },
+  {
+    "rotation_id": "rot_pk_rice_dry_peas",
+    "label": "Rice - Dry Peas",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["rice", "dry_peas"],
+    "cover_crop": null,
+    "notes": "Breaks cereal disease cycles and enriches soil nitrogen in irrigated rice zones"
+  },
+  {
+    "rotation_id": "rot_pk_maize_oats_mung",
+    "label": "Maize - Oats Fodder - Mungbean",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["maize", "oats_fodder", "mungbean"],
+    "cover_crop": null,
+    "notes": "Mixed livestock-grain tri-crop system balancing forage output with legume nitrogen"
+  },
+  {
+    "rotation_id": "rot_pk_mash_wheat",
+    "label": "Mash Bean - Wheat",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["mash_bean", "wheat"],
+    "cover_crop": null,
+    "notes": "Sub-humid summer pulse rotation in Narowal and Sialkot improving subsequent wheat yield"
+  },
+  {
+    "rotation_id": "rot_pk_soybean_wheat",
+    "label": "Soybean - Wheat",
+    "strategy_type": "soil_building",
+    "region_id": "pk_kp",
+    "sequence": ["soybean", "wheat"],
+    "cover_crop": null,
+    "notes": "Recommended PARC oilseed-legume diversification in Swat, Hazara, and Mardan"
+  },
+  {
+    "rotation_id": "rot_pk_cotton_canola_wheat",
+    "label": "Cotton - Canola - Wheat",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["cotton", "canola", "wheat"],
+    "cover_crop": null,
+    "notes": "Brassica inclusion disrupts pink bollworm carryover and improves soil tilth"
+  },
+  {
+    "rotation_id": "rot_pk_rice_mustard",
+    "label": "Rice - Rapeseed & Mustard",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["rice", "rapeseed_mustard"],
+    "cover_crop": null,
+    "notes": "Bio-fumigant brassica break crop reducing soil-borne pathogens in paddy fields"
+  },
+  {
+    "rotation_id": "rot_pk_maize_linseed",
+    "label": "Maize - Linseed",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["maize", "linseed"],
+    "cover_crop": null,
+    "notes": "Low-input winter oilseed rotation breaking continuous grass-family pest pressure"
+  },
+  {
+    "rotation_id": "rot_pk_lucerne_wheat",
+    "label": "Lucerne - Wheat",
+    "strategy_type": "soil_building",
+    "region_id": "pk_balochistan",
+    "sequence": ["lucerne", "wheat"],
+    "cover_crop": null,
+    "notes": "Deep-rooted perennial alfalfa restores soil organic matter before cereal rotation"
+  },
+  {
+    "rotation_id": "rot_pk_rice_potato_maize",
+    "label": "Rice - Potato - Spring Maize",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["rice", "potato", "maize"],
+    "cover_crop": null,
+    "notes": "High-intensity commercial three-crop system in Okara, Kasur, and Sahiwal"
+  },
+  {
+    "rotation_id": "rot_pk_rice_potato_sunflower",
+    "label": "Rice - Potato - Sunflower",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["rice", "potato", "sunflower"],
+    "cover_crop": null,
+    "notes": "Captures residual potato fertilizer using spring sunflower before next paddy cycle"
+  },
+  {
+    "rotation_id": "rot_pk_maize_potato_onion",
+    "label": "Maize - Potato - Onion",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["maize", "potato", "onion"],
+    "cover_crop": null,
+    "notes": "High-value cash horticulture rotation requiring heavy organic matter replenishment"
+  },
+  {
+    "rotation_id": "rot_pk_cotton_sunflower",
+    "label": "Cotton - Sunflower",
+    "strategy_type": "income",
+    "region_id": "pk_sindh",
+    "sequence": ["cotton", "sunflower"],
+    "cover_crop": null,
+    "notes": "Cash oilseed rotation in Badin, Thatta, and Umerkot replacing late-sown wheat"
+  },
+  {
+    "rotation_id": "rot_pk_tobacco_maize_wheat",
+    "label": "Tobacco - Maize - Wheat",
+    "strategy_type": "income",
+    "region_id": "pk_kp",
+    "sequence": ["tobacco", "maize", "wheat"],
+    "cover_crop": null,
+    "notes": "High-revenue cash rotation in Swabi, Mardan, and Charsadda irrigated plains"
+  },
+  {
+    "rotation_id": "rot_pk_sugarbeet_maize",
+    "label": "Sugarbeet - Maize",
+    "strategy_type": "income",
+    "region_id": "pk_kp",
+    "sequence": ["sugarbeet", "maize"],
+    "cover_crop": null,
+    "notes": "Peshawar and Mardan valley industrial sugar-cereal rotation"
+  },
+  {
+    "rotation_id": "rot_pk_red_chilli_wheat",
+    "label": "Red Chilli - Wheat",
+    "strategy_type": "income",
+    "region_id": "pk_sindh",
+    "sequence": ["red_chilli", "wheat"],
+    "cover_crop": null,
+    "notes": "High-value spice-grain system centered in Kunri and Umerkot districts"
+  },
+  {
+    "rotation_id": "rot_pk_turmeric_wheat",
+    "label": "Turmeric - Wheat",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["turmeric", "wheat"],
+    "cover_crop": null,
+    "notes": "High-margin rhizome spice system in Kasur and Changa Manga irrigated belt"
+  },
+  {
+    "rotation_id": "rot_pk_maize_garlic",
+    "label": "Maize - Garlic",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["maize", "garlic"],
+    "cover_crop": null,
+    "notes": "High-return peri-urban and central Punjab spice-cereal rotation"
+  },
+  {
+    "rotation_id": "rot_pk_okra_cauliflower",
+    "label": "Okra - Cauliflower",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["okra", "cauliflower"],
+    "cover_crop": null,
+    "notes": "Peri-urban market garden rotation alternating Malvaceae and Brassicaceae families"
+  },
+  {
+    "rotation_id": "rot_pk_brinjal_cabbage",
+    "label": "Brinjal - Cabbage",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["brinjal", "cabbage"],
+    "cover_crop": null,
+    "notes": "Summer Solanaceae to winter Brassicaceae rotation minimizing soil-borne wilt"
+  },
+  {
+    "rotation_id": "rot_pk_bitter_gourd_carrot",
+    "label": "Bitter Gourd - Carrot",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["bitter_gourd", "carrot"],
+    "cover_crop": null,
+    "notes": "Commercial vegetable rotation in Sheikhupura and Lahore peri-urban belts"
+  },
+  {
+    "rotation_id": "rot_pk_bottle_gourd_radish",
+    "label": "Bottle Gourd - Radish",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["bottle_gourd", "radish"],
+    "cover_crop": null,
+    "notes": "Fast-turnaround cucurbit to root-crop vegetable sequence"
+  },
+  {
+    "rotation_id": "rot_pk_cucumber_turnip_spinach",
+    "label": "Cucumber - Turnip - Spinach",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["cucumber", "turnip", "spinach"],
+    "cover_crop": null,
+    "notes": "Intensive three-family peri-urban leafy and root vegetable rotation"
+  },
+  {
+    "rotation_id": "rot_pk_tomato_coriander",
+    "label": "Tomato - Coriander Seed",
+    "strategy_type": "income",
+    "region_id": "pk_kp",
+    "sequence": ["tomato", "coriander"],
+    "cover_crop": null,
+    "notes": "Spring-summer tomato followed by winter aromatic spice in KP plains"
+  },
+  {
+    "rotation_id": "rot_pk_watermelon_wheat",
+    "label": "Watermelon - Wheat",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["watermelon", "wheat"],
+    "cover_crop": null,
+    "notes": "Zaid spring cucurbit cash crop on sandy-loam riverbeds before winter wheat"
+  },
+  {
+    "rotation_id": "rot_pk_muskmelon_chickpea",
+    "label": "Musk Melon - Chickpea",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["muskmelon", "chickpea"],
+    "cover_crop": null,
+    "notes": "Spring melon cash crop rotated with low-water winter gram"
+  },
+  {
+    "rotation_id": "rot_pk_strawberry_maize",
+    "label": "Strawberry - Maize",
+    "strategy_type": "income",
+    "region_id": "pk_kp",
+    "sequence": ["strawberry", "maize"],
+    "cover_crop": null,
+    "notes": "High-value winter berry rotation in Swat, Charsadda, and Mansehra"
+  },
+  {
+    "rotation_id": "rot_pk_citrus_berseem_intercrop",
+    "label": "Citrus Orchard - Berseem Intercrop",
+    "strategy_type": "soil_building",
+    "region_id": "pk_punjab",
+    "sequence": ["citrus_kinnow", "berseem"],
+    "cover_crop": null,
+    "notes": "Juvenile Kinnow orchard alley-cropping in Sargodha and Bhalwal for nitrogen and fodder"
+  },
+  {
+    "rotation_id": "rot_pk_mango_wheat_intercrop",
+    "label": "Mango Orchard - Wheat Intercrop",
+    "strategy_type": "income",
+    "region_id": "pk_punjab",
+    "sequence": ["mango", "wheat"],
+    "cover_crop": null,
+    "notes": "Early-stage mango orchard intercropping in Multan and Rahim Yar Khan during years 1-5"
+  },
+  {
+    "rotation_id": "rot_pk_banana_onion_intercrop",
+    "label": "Banana - Onion Intercrop",
+    "strategy_type": "income",
+    "region_id": "pk_sindh",
+    "sequence": ["banana", "onion"],
+    "cover_crop": null,
+    "notes": "Newly established banana plantation intercropped with winter onion in Khairpur and Thatta"
+  },
+  {
+    "rotation_id": "rot_pk_apple_lucerne_intercrop",
+    "label": "Apple Orchard - Lucerne Intercrop",
+    "strategy_type": "soil_building",
+    "region_id": "pk_balochistan",
+    "sequence": ["apple", "lucerne"],
+    "cover_crop": null,
+    "notes": "Quetta, Ziarat, and Kalat highland orchard floor management for nitrogen and soil moisture"
+  }
 ]

@@ -101,15 +101,20 @@ def test_unsupported_region_rejected_without_fallback(client, fake):
     assert fake.calls == []  # no NASA call for unsupported places
 
 
-def test_us_region_supported(client, fake):
-    r = post(client, location={"lat": 41.5, "lon": -93.5}, current_crop=None, current_rotation_id="rot_us_corn_soy")
-    assert r.status_code == 200 and r.json()["location"]["region_id"] == "us_midwest"
+def test_sindh_region_supported(client, fake):
+    # Hyderabad, Sindh: inside both the Sindh and Balochistan rectangles; offline -> file order (Sindh)
+    r = post(client, location={"lat": 25.40, "lon": 68.37}, current_crop=None, current_rotation_id="rot_pk_sindh_cotton_wheat")
+    assert r.status_code == 200 and r.json()["location"]["region_id"] == "pk_sindh"
+    assert any("provincial border" in w for w in r.json()["warnings"])
 
 
 def test_crop_mapping(client, fake):
     r = post(client)
     assert r.status_code == 200 and r.json()["location"]["current_rotation_id"] == "rot_pk_rice_wheat"
-    assert post(client, current_crop="wheat").status_code == 422  # ambiguous
+    # A crop found in several rotations is auto-picked deterministically, with a warning to check it
+    r = post(client, current_crop="wheat")
+    assert r.status_code == 200 and r.json()["location"]["current_rotation_id"] == "rot_pk_cotton_wheat"
+    assert any("we assumed your current rotation" in w for w in r.json()["warnings"])
     assert post(client, current_crop="banana").status_code == 422  # unknown
     assert post(client, current_crop=None).status_code == 422  # nothing provided
     assert post(client, current_crop=None, current_rotation_id="rot_us_corn_soy").status_code == 422

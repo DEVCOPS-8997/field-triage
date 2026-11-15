@@ -16,6 +16,7 @@ import type { KeyboardEvent, ReactNode } from 'react'
 import { CircleAlert, CircleCheck, Info, TriangleAlert, X, type LucideIcon } from 'lucide-react'
 import { cn } from './cn'
 import { IconButton } from './IconButton'
+import { useI18n } from '../../lib/i18n'
 
 export type NoticeTone = 'info' | 'warn' | 'error' | 'success'
 
@@ -47,6 +48,7 @@ export function Notice({
   compact = false,
   className,
 }: NoticeProps) {
+  const { t: tr } = useI18n()
   const t = TONE[tone]
   const Icon = icon ?? t.Icon
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -69,7 +71,7 @@ export function Notice({
         className,
       )}
     >
-      <span className={cn('flex shrink-0 items-center', compact ? 'h-[20px] pl-1' : 'h-[24px]')}>
+      <span className={cn('flex shrink-0 items-center', compact ? 'h-[1lh] ps-1' : 'h-[1lh]')}>
         <Icon size={20} strokeWidth={1.75} aria-hidden className={t.icon} />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -77,16 +79,16 @@ export function Notice({
           {title && <p className="m-0 font-semibold">{title}</p>}
           <div className="m-0">{children}</div>
         </div>
-        {actions && <div className="-ml-4 flex flex-wrap items-center gap-2 sm:ml-0">{actions}</div>}
+        {actions && <div className="-ms-4 flex flex-wrap items-center gap-2 sm:ms-0">{actions}</div>}
       </div>
       {onDismiss && (
         <IconButton
-          label="Dismiss"
+          label={tr('common.dismiss')}
           icon={X}
           variant="ghost"
           tooltipSide="none"
           onClick={onDismiss}
-          className="-my-2 -mr-2"
+          className="-my-2 -me-2"
         />
       )}
     </div>

@@ -16,6 +16,27 @@ Core engineering invariants:
    from development through mid-season, and water demand is sum(Kc x ETo) when monthly ETo exists
    (falls back to the catalog `water_need_mm` otherwise). Supply = USDA-SCS effective rain +
    plant-available soil water (Saxton-Rawls AWC x rooting depth) + assumed irrigation.
+10. Farmer limits (`FarmConstraints`) never change scores or rank; they only decide
+   `fits_constraints` / `constraint_failures`:
+   * `water_available_mm` replaces the irrigation tier amount per crop season in the water balance,
+     and a rotation fails when any crop's average irrigation need to reach its minimum viable share
+     of water (viable_water_fraction x demand - effective rain - stored soil water) exceeds it;
+   * `min_income_usd_ha` fails a rotation whose known expected crop sales are below it (unknown
+     income never fails; explain.py reports it as a gap);
+   * `max_bad_seasons_in_10` fails when (non-viable past seasons / checked seasons) x 10 exceeds it;
+   * `unavailable_equipment` fails when any crop (cash or cover) needs a listed item, from
+     `parameters.json` `equipment_needs` (`by_crop` overrides `by_type`).
+11. Deterministic shortlist. Every regional rotation is scored and ranked (rank 1 = best overall).
+   Then: the current rotation is always shortlisted ("Your current rotation"); then, for each
+   strategy type in the fixed order water_saving, soil_building, income, conventional, the
+   best-ranked rotation of that type that fits the farmer's limits and is not already shortlisted
+   is added ("Best <type> option for your field"). A type with no fitting rotation is skipped.
+   Every other rotation has `shortlisted = False`. `total_candidates` is the number scored.
+12. `farm_year` folds each rotation onto the 12 calendar months (see `farm_year.py` for the fold
+   rule and risk definitions), with the same rain/temperature scenario as the season replay.
+13. `mean_water_need_mm` / `mean_irrigation_gap_mm` are per-year totals: for each cash crop the
+   average past-season demand (and average max(0, demand - effective rain - stored soil water)),
+   summed over the rotation's crops and divided by the cycle length in years.
 """
 
 from __future__ import annotations
@@ -26,6 +47,8 @@ from typing import Any, Literal
 import numpy as np
 
 from app.models.schemas import (
+    FarmConstraints,
+    FarmMonth,
     FieldInfo,
     FieldProfile,
     MonthRecord,
@@ -35,6 +58,7 @@ from app.models.schemas import (
 )
 from app.services.agromet import effective_rain_usda_scs, season_month_weights, temperature_eto_factor
 from app.services.data_loader import FIVE_CONFIDENCE_PILLARS, PILLAR_TO_METADATA_ID
+from app.services.farm_year import FarmYearResult, build_farm_year, cycle_layout
 from app.utils.validation import (
     ProfileUnavailableError,
     is_valid_number,
@@ -46,6 +70,21 @@ from app.utils.validation import (
 )
 
 ConfidenceLiteral = Literal["HIGH", "MEDIUM", "LOW"]
+SHORTLIST_ORDER: tuple[tuple[str, str], ...] = (
+    ("water_saving", "Best water-saving option for your field"),
+    ("soil_building", "Best soil-building option for your field"),
+    ("income", "Best income option for your field"),
+    ("conventional", "Best conventional option for your field"),
+)
+CURRENT_REASON = "Your current rotation"
+EQUIPMENT_LABELS: dict[str, str] = {
+    "seed_drill": "a seed drill",
+    "combine_harvester": "a combine harvester",
+    "rice_transplanting": "a rice transplanting crew or machine",
+    "picking_labour": "labour for many hand pickings",
+    "orchard_commitment": "land you can give to trees for 5 years or more",
+    "daily_market_access": "a market you can reach every few days",
+}
 BareFractionSource = Literal["modis_ndvi", "crop_calendar"]
 WaterDemandSource = Literal["fao56_kc_eto", "catalog_water_need"]
 
@@ -145,6 +184,16 @@ class RotationEvaluation:
     soil_water_mm: float = 0.0
     water_demand_source: str = "catalog_water_need"
     soil_awc_m3m3: float | None = None
+    # Farmer limits, shortlist and farm year (filled in evaluate_rotations).
+    fits_constraints: bool = True
+    constraint_failures: tuple[tuple[str, str], ...] = ()  # (limit kind, plain sentence)
+    income_unchecked: bool = False  # a minimum income was given but this rotation's income is unknown
+    shortlisted: bool = False
+    shortlist_reason: str | None = None
+    farm_year: tuple[FarmMonth, ...] = ()
+    farm_year_result: FarmYearResult | None = None
+    mean_water_need_mm: float | None = None
+    mean_irrigation_gap_mm: float | None = None
 
 
 @dataclass(frozen=True)
@@ -155,6 +204,8 @@ class EngineComparisonResult:
     scenario_applied: bool
     evaluations: tuple[RotationEvaluation, ...]
     coverage_report: PillarCoverageReport
+    constraints: FarmConstraints | None = None
+    total_candidates: int = 0
 
 
 def get_season_year_months(
@@ -190,23 +241,6 @@ def select_heat_bucket(
     return str(nearest)
 
 
-def _earliest_month_ge(min_abs_month: int, target_calendar_month: int) -> int:
-    """Return smallest 1-based absolute month `>= min_abs_month` matching `target_calendar_month` (1..12)."""
-    current_cal_month = ((min_abs_month - 1) % 12) + 1
-    offset = (target_calendar_month - current_cal_month) % 12
-    return min_abs_month + offset
-
-
-def _crop_end_abs_month(start_abs_month: int, sow_month: int, harvest_month: int) -> int:
-    """Return inclusive ending 1-based absolute month for a crop starting at `start_abs_month`."""
-    duration_span = (
-        (harvest_month - sow_month)
-        if sow_month <= harvest_month
-        else (12 - sow_month + harvest_month)
-    )
-    return start_abs_month + duration_span
-
-
 def compute_calendar_bare_fraction(
     sequence_crops: list[dict[str, Any]],
     cover_crop: dict[str, Any] | None,
@@ -218,49 +252,21 @@ def compute_calendar_bare_fraction(
     rotations (e.g., US Midwest 24-month corn-soybean or 36-month corn-soybean-wheat), plus
     optional fallow-window cover crops (e.g., winter cereal rye).
     """
-    calendars = [validate_crop_calendar(c, region_id) for c in sequence_crops]
-    first_sow, first_harv = calendars[0]
-
-    starts: list[int] = [first_sow]
-    ends: list[int] = [_crop_end_abs_month(first_sow, first_sow, first_harv)]
-
-    for sow_m, harv_m in calendars[1:]:
-        next_start = _earliest_month_ge(ends[-1], sow_m)
-        if next_start <= starts[-1]:
-            next_start += 12
-        starts.append(next_start)
-        ends.append(_crop_end_abs_month(next_start, sow_m, harv_m))
-
-    cycle_end_sow = _earliest_month_ge(max(ends[-1], starts[0] + 1), first_sow)
-    if cycle_end_sow <= starts[0]:
-        cycle_end_sow += 12
-
-    cycle_months = cycle_end_sow - starts[0]
+    layout = cycle_layout(sequence_crops, cover_crop, region_id)
+    cycle_months = layout.cycle_months
     cash_covered: set[int] = set()
-    for st, en in zip(starts, ends, strict=True):
+    for st, en in zip(layout.starts, layout.ends, strict=True):
         for abs_m in range(st, en + 1):
-            cash_covered.add((abs_m - starts[0]) % cycle_months)
+            cash_covered.add(layout.position(abs_m))
 
     bare_without_cover = _clip(1.0 - (len(cash_covered) / float(cycle_months)), 0.0, 1.0)
-
     if cover_crop is None:
         return bare_without_cover, bare_without_cover, cycle_months
 
-    cover_sow, cover_harv = validate_crop_calendar(cover_crop, region_id)
     with_cover_set = set(cash_covered)
-
-    for idx, end_curr in enumerate(ends):
-        next_cash_start = starts[idx + 1] if idx + 1 < len(starts) else cycle_end_sow
-        if next_cash_start - end_curr <= 1:
-            continue
-        c_start = _earliest_month_ge(end_curr, cover_sow)
-        c_end = _crop_end_abs_month(c_start, cover_sow, cover_harv)
-        while c_end <= next_cash_start:
-            for abs_m in range(c_start, c_end + 1):
-                with_cover_set.add((abs_m - starts[0]) % cycle_months)
-            c_start += 12
-            c_end += 12
-
+    for c_start, c_end in layout.cover_spans:
+        for abs_m in range(c_start, c_end + 1):
+            with_cover_set.add(layout.position(abs_m))
     bare_with_cover = _clip(1.0 - (len(with_cover_set) / float(cycle_months)), 0.0, 1.0)
     return bare_with_cover, bare_without_cover, cycle_months
 
@@ -678,12 +684,16 @@ def evaluate_rotations(
     scenario: Scenario | None = None,
     requested_rotation_ids: list[str] | None = None,
     market_crops: dict[str, Any] | None = None,
+    constraints: FarmConstraints | None = None,
 ) -> EngineComparisonResult:
     """Evaluate, score, quantify uncertainty/confidence, and rank candidate rotations for `field`.
 
     `market_crops` is the FAOSTAT entry for the field's country (`data/market_faostat.json`). Without
     it, or when any candidate lacks current FAOSTAT yield and price, income is not scored and its
     priority weight is shared out over the other three components.
+
+    `constraints` are the farmer's limits (water, minimum income, accepted bad seasons, missing
+    equipment). They never change scores or rank; they set `fits_constraints` and the shortlist.
     """
     validate_parameters_dict(parameters)
     validated_priorities = validate_priorities(priorities or Priorities())
@@ -707,11 +717,30 @@ def evaluate_rotations(
     sorted_years = sorted({rec.year for rec in profile.monthly})
     max_profile_year = sorted_years[-1]
 
-    irrigation_mm = float(parameters["irrigation_mm"][field.irrigation])
+    water_available = (
+        float(constraints.water_available_mm)
+        if constraints is not None and constraints.water_available_mm is not None
+        else None
+    )
+    # The farmer's own water figure replaces the irrigation tier's assumed amount per crop season.
+    irrigation_mm = (
+        water_available if water_available is not None else float(parameters["irrigation_mm"][field.irrigation])
+    )
     water_gap_ref_mm = float(parameters["water_gap_ref_mm"])
     n_ref_kg_ha = float(parameters["n_ref_kg_ha"])
     heavy_ref_days = float(parameters["heavy_ref_days"])
-    heat_buckets_c = list(parameters["heat_buckets_c"])
+    # Use only thresholds the profile actually counted (live POWER profiles count every degree;
+    # older pre-built profiles carry 30/34/38/42 only), so a crop is never checked against a
+    # threshold with no data.
+    profile_keys: set[str] | None = None
+    for rec in profile.monthly:
+        if rec.heat_days_ge:
+            keys = set(rec.heat_days_ge)
+            profile_keys = keys if profile_keys is None else (profile_keys & keys)
+    heat_buckets_c = [
+        b for b in parameters["heat_buckets_c"]
+        if profile_keys is None or (str(int(b)) if float(b).is_integer() else str(b)) in profile_keys
+    ] or list(parameters["heat_buckets_c"])
     soil_weights = parameters["soil_weights"]
     same_family_score = float(parameters["pest_break_same_family"])
     diff_family_score = float(parameters["pest_break_diff_family"])
@@ -730,6 +759,16 @@ def evaluate_rotations(
     frost_damage_days = float(parameters.get("frost_damage_days", 1.0))
 
     coverage_report = assess_coverage_and_confidence(profile, parameters)
+
+    # Observed MODIS greenness curve for the farm year (site-level; never synthetic demo values).
+    ndvi_raw = profile.climatology.get("ndvi_monthly_mean")
+    ndvi_curve = (
+        list(ndvi_raw)
+        if isinstance(ndvi_raw, list)
+        and profile.data_mode == "observed"
+        and profile.data_quality.get("modis") in ("observed", "derived")
+        else None
+    )
 
     unranked_evals: list[RotationEvaluation] = []
     yearly_parts_by_rot: dict[str, dict[int, tuple[float, float]]] = {}
@@ -902,6 +941,52 @@ def evaluate_rotations(
             yearly_parts[yr] = (yr_water, yr_resilience)
         yearly_parts_by_rot[rot_id] = yearly_parts
 
+        # Per-crop water figures (average over past seasons) for the farm-level water numbers.
+        need_by_crop: dict[str, float] = {}
+        gap_by_crop: dict[str, float] = {}
+        min_irrig_by_crop: dict[str, float] = {}
+        for cid in dict.fromkeys(seq_ids):
+            cs = [se for se in valid_seasons if se.crop_id == cid and se.effective_rain_mm is not None]
+            if not cs:
+                continue
+            need_by_crop[cid] = float(np.mean([se.water_need_mm for se in cs]))
+            gap_by_crop[cid] = float(np.mean([
+                max(0.0, se.water_need_mm - float(se.effective_rain_mm) - se.soil_water_mm) for se in cs
+            ]))
+            min_irrig_by_crop[cid] = float(np.mean([
+                max(0.0, se.viable_water_fraction * se.water_need_mm - float(se.effective_rain_mm) - se.soil_water_mm)
+                for se in cs
+            ]))
+        cycle_years = max(cycle_months, 12) / 12.0
+        if all(cid in need_by_crop for cid in seq_ids):
+            mean_need_year: float | None = round(sum(need_by_crop[c] for c in seq_ids) / cycle_years, 1)
+            mean_gap_year: float | None = round(sum(gap_by_crop[c] for c in seq_ids) / cycle_years, 1)
+        else:
+            mean_need_year = mean_gap_year = None
+
+        failures, income_unchecked = _check_constraints(
+            constraints=constraints,
+            seq_crops=seq_crops,
+            cover_crop=cover_crop,
+            min_irrig_by_crop=min_irrig_by_crop,
+            annual_value=annual_value,
+            viable_count=sum(1 for se in valid_seasons if se.viable),
+            evaluated_count=len(valid_seasons),
+            parameters=parameters,
+        )
+
+        fy = build_farm_year(
+            sequence_crops=seq_crops,
+            cover_crop=cover_crop,
+            region_id=field.region_id,
+            monthly=profile.monthly,
+            scenario=validated_scenario,
+            heat_buckets_c=heat_buckets_c,
+            parameters=parameters,
+            water_available_mm=water_available,
+            ndvi_monthly_mean=ndvi_curve,
+        )
+
         viable_count = sum(1 for se in valid_seasons if se.viable)
         heat_fail_count = sum(1 for se in valid_seasons if se.heat_ok is False)
         frost_fail_count = sum(1 for se in valid_seasons if se.frost_ok is False)
@@ -959,6 +1044,13 @@ def evaluate_rotations(
                 soil_water_mm=round(float(np.mean([se.soil_water_mm for se in valid_seasons])), 1),
                 water_demand_source=demand_sources.pop() if len(demand_sources) == 1 else "mixed",
                 soil_awc_m3m3=soil_awc,
+                fits_constraints=not failures,
+                constraint_failures=tuple(failures),
+                income_unchecked=income_unchecked,
+                farm_year=fy.months,
+                farm_year_result=fy,
+                mean_water_need_mm=mean_need_year,
+                mean_irrigation_gap_mm=mean_gap_year,
             )
         )
 
@@ -1026,14 +1118,15 @@ def evaluate_rotations(
         ),
     )
 
+    ranked = [RotationEvaluation(**{**ev.__dict__, "rank": idx + 1}) for idx, ev in enumerate(sorted_evals)]
+    reasons = shortlist_reasons(ranked)
     ranked_evals = tuple(
-        RotationEvaluation(
-            **{
-                **ev.__dict__,
-                "rank": idx + 1,
-            }
-        )
-        for idx, ev in enumerate(sorted_evals)
+        RotationEvaluation(**{
+            **ev.__dict__,
+            "shortlisted": ev.rotation_id in reasons,
+            "shortlist_reason": reasons.get(ev.rotation_id),
+        })
+        for ev in ranked
     )
 
     scenario_applied = bool(
@@ -1046,4 +1139,110 @@ def evaluate_rotations(
         scenario_applied=scenario_applied,
         evaluations=ranked_evals,
         coverage_report=coverage_report,
+        constraints=constraints,
+        total_candidates=len(ranked_evals),
     )
+
+
+def shortlist_reasons(ranked: list[RotationEvaluation]) -> dict[str, str]:
+    """Deterministic shortlist (module docstring rule 11): rotation_id -> plain reason."""
+    reasons: dict[str, str] = {}
+    by_rank = sorted(ranked, key=lambda e: (e.rank, e.rotation_id))
+    for ev in by_rank:
+        if ev.is_existing:
+            reasons[ev.rotation_id] = CURRENT_REASON
+    for strategy, reason in SHORTLIST_ORDER:
+        best = next(
+            (
+                ev for ev in by_rank
+                if ev.strategy_type == strategy and ev.fits_constraints and ev.rotation_id not in reasons
+            ),
+            None,
+        )
+        if best is not None:
+            reasons[best.rotation_id] = reason
+    return reasons
+
+
+def crop_equipment_needs(crop: dict[str, Any], parameters: dict[str, Any]) -> list[str]:
+    """Equipment/labour/commitments a crop usually needs (`parameters.json` `equipment_needs`)."""
+    cfg = parameters.get("equipment_needs") or {}
+    by_crop = cfg.get("by_crop") or {}
+    cid = str(crop.get("crop_id"))
+    if cid in by_crop:
+        return list(by_crop[cid] or [])
+    return list((cfg.get("by_type") or {}).get(str(crop.get("type")), []) or [])
+
+
+def _fmt_count(x: float) -> str:
+    return f"{x:.0f}" if abs(x - round(x)) < 0.05 else f"{x:.1f}"
+
+
+def _check_constraints(
+    *,
+    constraints: FarmConstraints | None,
+    seq_crops: list[dict[str, Any]],
+    cover_crop: dict[str, Any] | None,
+    min_irrig_by_crop: dict[str, float],
+    annual_value: float | None,
+    viable_count: int,
+    evaluated_count: int,
+    parameters: dict[str, Any],
+) -> tuple[list[tuple[str, str]], bool]:
+    """Return `([(kind, plain sentence), ...], income_unchecked)` for the farmer's limits."""
+    if constraints is None:
+        return [], False
+    out: list[tuple[str, str]] = []
+
+    if constraints.water_available_mm is not None:
+        have = float(constraints.water_available_mm)
+        unique = {str(c["crop_id"]): c for c in seq_crops}
+        short = [
+            (str(c.get("name", cid)), min_irrig_by_crop[cid])
+            for cid, c in unique.items()
+            if cid in min_irrig_by_crop and min_irrig_by_crop[cid] > have
+        ]
+        if short:
+            name, need = max(short, key=lambda x: (x[1], x[0]))
+            out.append((
+                "water",
+                f"{name} needs about {round(need, -1):,.0f} mm of irrigation per season to get through a "
+                f"normal year; you said you have {have:,.0f} mm.",
+            ))
+
+    income_unchecked = False
+    if constraints.min_income_usd_ha is not None:
+        target = float(constraints.min_income_usd_ha)
+        if annual_value is None:
+            income_unchecked = True
+        elif annual_value < target:
+            out.append((
+                "income",
+                f"Expected crop sales are about ${annual_value:,.0f} per hectare a year; "
+                f"your target is ${target:,.0f}.",
+            ))
+
+    if constraints.max_bad_seasons_in_10 is not None and evaluated_count > 0:
+        bad_in_10 = (evaluated_count - viable_count) / evaluated_count * 10.0
+        if bad_in_10 > constraints.max_bad_seasons_in_10 + 1e-9:
+            out.append((
+                "risk",
+                f"About {_fmt_count(bad_in_10)} of every 10 past seasons failed here; "
+                f"you said you can accept {constraints.max_bad_seasons_in_10}.",
+            ))
+
+    if constraints.unavailable_equipment:
+        crops = list(seq_crops) + ([cover_crop] if cover_crop is not None else [])
+        for item in dict.fromkeys(constraints.unavailable_equipment):
+            names = list(dict.fromkeys(
+                str(c.get("name", c["crop_id"])) for c in crops if item in crop_equipment_needs(c, parameters)
+            ))
+            if not names:
+                continue
+            who = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+            verb = "needs" if len(names) == 1 else "need"
+            out.append((
+                "equipment",
+                f"{who} {verb} {EQUIPMENT_LABELS.get(item, item.replace('_', ' '))}, which you said you do not have.",
+            ))
+    return out, income_unchecked

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -16,6 +16,21 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Plus+Jakarta+Sans:wght@400;600&display=swap"
     />
+    <!-- Urdu: Noto Nastaliq Urdu (headings) + Noto Naskh Arabic (body/UI). The browser downloads
+         these files only when Arabic-script text is on screen (unicode-range subsets). -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600&family=Noto+Nastaliq+Urdu:wght@400;600&display=swap"
+    />
+    <script>
+      // Apply the saved language before first paint (no LTR flash for Urdu readers).
+      try {
+        if (localStorage.getItem('fsa.lang') === 'ur') {
+          document.documentElement.lang = 'ur'
+          document.documentElement.dir = 'rtl'
+        }
+      } catch (e) {}
+    </script>
     <title>Field Shift Advisor</title>
   </head>
   <body>

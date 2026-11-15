@@ -25,6 +25,7 @@ import {
 import { CHART_COLORS, CHART_DEFAULTS, type MarkerShape } from '../lib/charts/tokens'
 import { Card, LegendRow } from '../lib/ui4/primitives'
 import { cx, fg, type } from '../lib/ui4/cls'
+import { Term } from './ui/Term'
 
 export interface ClimateChartsProps {
   profile: FieldProfile
@@ -61,7 +62,7 @@ function ChartFrame({
   summary,
   children,
 }: {
-  title: string
+  title: ReactNode
   legend: { label: string; color: string; shape: MarkerShape }[]
   ariaLabel: string
   summary: string
@@ -183,7 +184,7 @@ export default function ClimateCharts({ profile, className }: ClimateChartsProps
       </ChartFrame>
 
       <ChartFrame
-        title="Vegetation (NDVI)"
+        title={<>Vegetation (<Term id="ndvi">NDVI</Term>)</>}
         legend={[
           { label: 'NDVI', color: CHART_COLORS.ndvi, shape: 'line' },
           { label: `Bare period (NDVI < ${BARE_NDVI_THRESHOLD})`, color: CHART_COLORS.bare, shape: 'hatch' },
@@ -237,7 +238,7 @@ export default function ClimateCharts({ profile, className }: ClimateChartsProps
       </ChartFrame>
 
       <ChartFrame
-        title="Root-zone soil moisture"
+        title={<Term id="rootzone">Root-zone soil moisture</Term>}
         legend={[{ label: 'Soil moisture (m³/m³)', color: CHART_COLORS.moisture, shape: 'line' }]}
         ariaLabel={`Line chart of mean monthly root-zone soil moisture, ${years}`}
         summary={smSummary}

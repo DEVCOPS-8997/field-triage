@@ -66,6 +66,42 @@ class DomainCatalog:
         return ((self.market.get("countries") or {}).get(country_iso3) or {}).get("crops")
 
 
+def apply_calendar_fallbacks(
+    crops: list[Any], regions: list[Any]
+) -> list[Any]:
+    """Fill a crop's missing regional calendar from the region's `calendar_fallback` chain.
+
+    The copied calendar is marked in `calendar_borrowed[region_id] = source_region_id`, so the
+    explanation layer can tell the farmer the dates come from a neighbouring province. Crops that
+    already have a calendar for the region are left untouched. Input objects are not mutated.
+    """
+    chains = {
+        str(r.get("region_id")): [str(x) for x in (r.get("calendar_fallback") or [])]
+        for r in regions
+        if isinstance(r, dict)
+    }
+    out: list[Any] = []
+    for crop in crops:
+        if not isinstance(crop, dict) or not isinstance(crop.get("calendars"), dict):
+            out.append(crop)
+            continue
+        calendars = dict(crop["calendars"])
+        borrowed: dict[str, str] = dict(crop.get("calendar_borrowed") or {})
+        for region_id, chain in chains.items():
+            if region_id in calendars:
+                continue
+            for source in chain:
+                if source in calendars and source not in borrowed:
+                    calendars[region_id] = dict(calendars[source])
+                    borrowed[region_id] = source
+                    break
+        if borrowed:
+            out.append({**crop, "calendars": calendars, "calendar_borrowed": borrowed})
+        else:
+            out.append(crop)
+    return out
+
+
 _CATALOG_CACHE: dict[Path, DomainCatalog] = {}
 _PROFILE_CACHE: dict[tuple, FieldProfile] = {}
 
@@ -150,6 +186,13 @@ class DataLoader:
                 raw_fields_by_id[fi.field_id] = dict(item)
         except ValidationError as exc:
             raise DatasetIntegrityError(f"fields.json failed FieldInfo validation: {exc}") from exc
+
+        raw_regions = (
+            _read_json_file(resolved_dir / "regions.json")
+            if (resolved_dir / "regions.json").is_file()
+            else []
+        )
+        raw_crops = apply_calendar_fallbacks(raw_crops, raw_regions)
 
         crops_by_id: dict[str, dict[str, Any]] = {}
         for crop in raw_crops:

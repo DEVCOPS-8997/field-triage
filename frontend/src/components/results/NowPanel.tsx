@@ -3,6 +3,7 @@ import type { FieldProfile, NowStatusValue } from '../../types/api'
 import { Badge, Card } from '../../lib/ui4/primitives'
 import { cx, fg, surface, tabular, type } from '../../lib/ui4/cls'
 import { fmt, num } from './shared'
+import { Term } from '../ui/Term'
 
 const STATUS = {
   FAVORABLE: { tone: 'accent', icon: CircleCheck, text: 'Favourable' },
@@ -32,7 +33,7 @@ export default function NowPanel({
   const tiles = [
     { key: 'mean', icon: Thermometer, label: 'Mean 7 d', value: num(now.mean_temp_7d_c), fmtv: (v: number) => `${fmt(v, 1)} °C` },
     { key: 'max', icon: Thermometer, label: 'Max 7 d', value: num(now.max_temp_7d_c), fmtv: (v: number) => `${fmt(v, 1)} °C` },
-    { key: 'wet', icon: Droplets, label: 'Root zone', value: wet, fmtv: (v: number) => `${Math.round(v * 100)}%` },
+    { key: 'wet', icon: Droplets, label: <Term id="rootzone">Root zone</Term>, value: wet, fmtv: (v: number) => `${Math.round(v * 100)}%` },
   ].filter((t) => t.value !== null)
   // No recent observations at all -> no card (nothing to show is better than a card of "n/a").
   if (rain.length === 0 && tiles.length === 0) return null
@@ -80,7 +81,8 @@ export default function NowPanel({
         </div>
       )}
       <p className={cx('m-0 text-[12px]', fg.fg3)}>
-        NASA POWER near-real-time data{dates.power ? `, latest day ${dates.power}` : ''}. Root-zone wetness is GWETROOT (0 to
+        NASA POWER near-real-time data for the <Term id="grid_cell">satellite grid cell</Term>
+        {dates.power ? `, latest day ${dates.power}` : ''}. <Term id="rootzone">Root-zone wetness</Term> is GWETROOT (0 to
         100% of saturation). This is a status snapshot, not a forecast.
       </p>
     </Card>

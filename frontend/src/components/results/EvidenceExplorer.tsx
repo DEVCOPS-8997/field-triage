@@ -3,6 +3,24 @@ import { CloudSun, Coins, Droplets, Layers, Mountain, Sprout, Tractor, type Luci
 import type { EvidenceGroup, EvidenceItem } from '../../types/api'
 import { cx, fg, tabular, type } from '../../lib/ui4/cls'
 import { SourceChip } from './InsightAccordion'
+import { Term } from '../ui/Term'
+import type { GlossaryId } from '../../lib/glossary'
+
+/** Evidence variables that carry a science word, explained with a Term popover. */
+const TERM_FOR: Record<string, GlossaryId> = {
+  eto_annual_mm_mean: 'eto',
+  gwetroot_mean: 'rootzone',
+  smap_rootzone_m3m3: 'rootzone',
+  soil_moisture_anomaly: 'soil_moisture_anomaly',
+  mean_effective_rain_mm: 'effective_rain',
+  mean_season_water_demand_mm: 'water_balance',
+  mean_season_water_deficit_mm: 'water_balance',
+  living_root_share: 'living_roots',
+  slope_deg: 'erosion_risk',
+  heavy_rain_days_ge_25mm_mean: 'erosion_risk',
+  ndvi_mean: 'ndvi',
+  ndvi_latest: 'ndvi',
+}
 
 const GROUPS: { key: EvidenceGroup; label: string; icon: LucideIcon; blurb: string }[] = [
   { key: 'climate', label: 'Climate', icon: CloudSun, blurb: '20+ years of NASA weather for this spot' },
@@ -94,7 +112,9 @@ export default function EvidenceExplorer({ items }: { items: EvidenceItem[] }) {
               className="flex min-w-0 flex-col gap-2 rounded-xl border border-[color:var(--color-glass-border,rgba(190,242,220,0.14))] bg-[rgba(255,255,255,0.03)] p-3"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <span className={cx('font-semibold', type.label, fg.fg)}>{e.label ?? e.variable}</span>
+                <span className={cx('font-semibold', type.label, fg.fg)}>
+                  {TERM_FOR[e.variable] ? <Term id={TERM_FOR[e.variable]}>{e.label ?? e.variable}</Term> : (e.label ?? e.variable)}
+                </span>
                 <span className={cx('flex items-baseline gap-1', fg.fg)}>
                   <span className={cx('text-[20px] leading-none font-semibold break-all', tabular)}>{valueText(e)}</span>
                   {e.unit && <span className={cx('text-[12px]', fg.fg3)}>{e.unit}</span>}

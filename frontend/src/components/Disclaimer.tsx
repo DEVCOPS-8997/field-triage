@@ -1,6 +1,7 @@
 import { ShieldCheck } from 'lucide-react'
 import { DISCLAIMER_TEXT } from '../lib/honesty/format'
 import { cx, surface, tx } from '../lib/ui5/styles'
+import { useI18n } from '../lib/i18n'
 
 export interface DisclaimerProps {
   /** "card" = sidebar footer (flat glass, padding 16); "inline" = footer line. */
@@ -22,8 +23,31 @@ function resolveText(text: string | null | undefined): string {
   return `${DISCLAIMER_TEXT} ${api}`
 }
 
+/**
+ * Urdu: the verbatim sentence is shown in Urdu. If the API sent extra English wording beyond the
+ * standard sentence, it follows in English (marked lang="en") so nothing from the API is dropped.
+ */
+function UrduBody({ text, sentence }: { text: string | null | undefined; sentence: string }) {
+  const api = text?.trim()
+  const extra = api && api !== DISCLAIMER_TEXT ? api.replace(DISCLAIMER_TEXT, '').trim() : ''
+  return (
+    <>
+      {sentence}
+      {extra && (
+        <>
+          {' '}
+          <span lang="en" dir="ltr" className="ltr">
+            {extra}
+          </span>
+        </>
+      )}
+    </>
+  )
+}
+
 export default function Disclaimer({ variant = 'card', text, className }: DisclaimerProps) {
-  const body = resolveText(text)
+  const { lang, t } = useI18n()
+  const body = lang === 'en' ? resolveText(text) : <UrduBody text={text} sentence={t('disclaimer.text')} />
 
   if (variant === 'inline') {
     return (
@@ -32,7 +56,7 @@ export default function Disclaimer({ variant = 'card', text, className }: Discla
         data-variant="inline"
         className={cx('m-0 flex items-start gap-2 font-normal', tx.label, tx.fg3, className)}
       >
-        <ShieldCheck size={16} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0" />
+        <ShieldCheck size={16} strokeWidth={1.75} aria-hidden="true" className="mt-[0.15lh] shrink-0" />
         <span>{body}</span>
       </p>
     )
@@ -42,14 +66,14 @@ export default function Disclaimer({ variant = 'card', text, className }: Discla
     <aside
       data-component="Disclaimer"
       data-variant="card"
-      aria-label="Disclaimer"
+      aria-label={t('disclaimer.ariaLabel')}
       className={cx(surface.flat, surface.radiusControl, 'flex items-start gap-2 p-4', className)}
     >
       <ShieldCheck
         size={16}
         strokeWidth={1.75}
         aria-hidden="true"
-        className={cx('mt-0.5 shrink-0', tx.fg3)}
+        className={cx('mt-[0.15lh] shrink-0', tx.fg3)}
       />
       <p className={cx('m-0 font-normal', tx.label, tx.fg2)}>{body}</p>
     </aside>

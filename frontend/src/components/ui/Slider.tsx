@@ -24,6 +24,8 @@ import { useId, type CSSProperties, type KeyboardEvent, type ReactNode } from 'r
 import { Check, FlaskConical } from 'lucide-react'
 import { cn, TONE_COLOR, type ScoreTone } from './cn'
 import { Badge } from './Badge'
+import { Ltr } from './Ltr'
+import { useI18n } from '../../lib/i18n'
 
 export type SliderTone = ScoreTone | 'simulated'
 
@@ -89,7 +91,7 @@ export function Slider({
           <span className="truncate">{label}</span>
         </label>
         <output htmlFor={inputId} className="text-label font-semibold tabular-nums text-fg">
-          {format(value)}
+          <Ltr>{format(value)}</Ltr>
         </output>
       </div>
       <input
@@ -119,10 +121,11 @@ export function Slider({
 
 /** Verbatim scenario label (SCN-02). Place above any `simulated` Slider. */
 export function SimulatedLabel({ className }: { className?: string }) {
+  const { t } = useI18n()
   return (
     <p className={cn('m-0 flex items-center gap-1 text-label font-semibold text-demo', className)}>
       <FlaskConical size={16} strokeWidth={1.75} aria-hidden />
-      Simulated conditions, not a NASA forecast
+      {t('slider.simulated')}
     </p>
   )
 }
@@ -163,12 +166,13 @@ export interface SumToOneSlidersProps {
 
 /** Sum-to-1 priority group. The parent owns rebalancing; the total chip always reads 1.00. */
 export function SumToOneSliders({ items, onChange, className }: SumToOneSlidersProps) {
+  const { t } = useI18n()
   return (
     <div data-component="SumToOneSliders" className={cn('flex flex-col gap-4', className)}>
       <div className="flex items-center gap-2">
         <AllocationBar items={items} className="flex-1" />
         <Badge tone="accent" icon={Check}>
-          Total 1.00
+          {t('common.total', { value: '1.00' })}
         </Badge>
       </div>
       {items.map((i) => (
